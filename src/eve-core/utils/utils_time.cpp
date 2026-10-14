@@ -190,6 +190,19 @@ std::string GetMTimeTillNow(double fromTime)
 
 EvE::TimeParts GetTimeParts(int64 filetime/*0*/)
 {
+    /*  The default argument means "now" at both no-argument call sites
+     *   (CalendarDB::CountUpcomingEvents and CalendarMgrService's nowParts), but nothing here
+     *   ever substituted it, so those calls computed from FILETIME 0 -- 11644473600 seconds
+     *   BEFORE the unix epoch.  The day count below then comes out negative and is converted
+     *   to uint16, which is undefined for an out-of-range value.  Where it saturates to 0 the
+     *   month walk breaks on its first compare leaving month at 0, daysOfMonth[month - 1]
+     *   reads one element before the array, and boost::gregorian::date() throws bad_month.
+     *   Nothing catches that, so the server aborts the moment a character select screen is
+     *   drawn.
+     */
+    if (filetime <= 0)
+        filetime = (int64)GetFileTimeNow();
+
     // time sent as (windows)FILETIME; convert to unix time
     double time(filetime /EvE::Time::Second);// to Seconds
     time -= SECS_BETWEEN_EPOCHS;    // epoc offset
