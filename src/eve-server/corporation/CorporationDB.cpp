@@ -311,53 +311,74 @@ PyObject *CorporationDB::GetEmploymentRecord(uint32 charID) {
     return DBResultToRowset(res);
 }
 
-uint16 CorporationDB::CreateMedal(uint32 ownerID, uint32 creatorID, const std::string& title, const std::string& description)
+uint32 CorporationDB::CreateMedal(uint32 ownerID, uint32 creatorID, const std::string& title, const std::string& description,
+                                  const std::vector< MedalRules::Layer >& layers)
 {
     std::string cTitle, cDesc;
     sDatabase.DoEscapeString(cTitle, title);
     sDatabase.DoEscapeString(cDesc, description);
     uint32 medalID(0);
     DBerror err;
-    sDatabase.RunQueryLID(err, medalID,
+    if (!sDatabase.RunQueryLID(err, medalID,
         " INSERT INTO crpMedals (ownerID, creatorID, title, description, date)"
-        " VALUES (%u, %u, '%s', '%s', %lli)", ownerID, creatorID, cTitle.c_str(), cDesc.c_str(), (int64)GetFileTimeNow());
+        " VALUES (%u, %u, '%s', '%s', %lli)", ownerID, creatorID, cTitle.c_str(), cDesc.c_str(), (int64)GetFileTimeNow()))
+    {
+        codelog(CORP__DB_ERROR, "Error in query: %s", err.c_str());
+        return 0;
+    }
+    if (medalID == 0)
+        return 0;
+
+    // the layers, in the order the client sent them (uix.FormatMedalData stacks them in row order)
+    std::ostringstream query;
+    query << "INSERT INTO crpMedalData (medalID, part, graphic, color) VALUES ";
+    bool first = true;
+    for (const auto& cur : layers) {
+        std::string eGraphic;
+        sDatabase.DoEscapeString(eGraphic, cur.graphic);
+        if (!first)
+            query << ",";
+        first = false;
+        query << "(" << medalID << "," << cur.part << ",'" << eGraphic << "'," << cur.color << ")";
+    }
+    if (first or !sDatabase.RunQuery(err, "%s", query.str().c_str())) {
+        // a medal without its graphics breaks the client's decoration lists
+        codelog(CORP__DB_ERROR, "Error saving the graphics of medal %u: %s", medalID, err.c_str());
+        DeleteMedal(medalID);
+        return 0;
+    }
 
     return medalID;
 }
 
-void CorporationDB::SaveMedalData(int64 medalID, std::vector< Corp::MedalData >& dataList)
+void CorporationDB::DeleteMedal(uint32 medalID)
 {
-    // loop thru data and add to query
-    std::ostringstream query;
-    query << "INSERT INTO crpMedalData(medalID, part, graphic, color)";
-    query << "VALUES ";
-
-    bool first = true;
-    for (auto cur : dataList) {
-        if (first) {
-            first = false;
-        } else {
-            query << ",";
-        }
-        query << "(" << std::to_string(medalID) << "," << std::to_string(cur.part) << ",'" << cur.graphic << "'," << std::to_string(cur.color) << ")";
-    }
-
-    if (!first ) {
-        DBerror err;
-        sDatabase.RunQuery(err, query.str().c_str());
-    }
-
-    //SELECT id, part, graphic, color FROM crpMedalData
+    DBerror err;
+    sDatabase.RunQuery(err, "DELETE FROM crpMedalData WHERE medalID = %u", medalID);
+    sDatabase.RunQuery(err, "DELETE FROM crpMedals WHERE medalID = %u", medalID);
 }
 
-PyRep* CorporationDB::GetRecipientsOfMedal(int32 medalID)
+uint32 CorporationDB::GetMedalOwner(uint32 medalID)
 {
-    //  SELECT recepientID, medalID, corpID, date, status FROM chrMedals WHERE recepientID = %u
+    DBQueryResult res;
+    if (!sDatabase.RunQuery(res, "SELECT ownerID FROM crpMedals WHERE medalID = %u", medalID)) {
+        codelog(CORP__DB_ERROR, "Error in query: %s", res.error.c_str());
+        return 0;
+    }
+    DBResultRow row;
+    if (res.GetRow(row))
+        return row.GetUInt(0);
+    return 0;
+}
+
+PyRep* CorporationDB::GetRecipientsOfMedal(uint32 medalID)
+{
+    // corp_ui_member_decorations.GetMedalSubContent:  recepientID, issuerID, date, reason, status (one row per award)
     DBQueryResult res;
     if (!sDatabase.RunQuery(res,
         "SELECT recepientID, issuerID, date, reason, status"
         " FROM chrMedals"
-        " WHERE medalID = %i", medalID))
+        " WHERE medalID = %u", medalID))
     {
         codelog(CORP__DB_ERROR, "Error in query: %s", res.error.c_str());
         return nullptr;
@@ -393,14 +414,16 @@ PyRep* CorporationDB::GetCorpMedalData(uint32 corpID)
     return DBResultToCRowset(res);
 }
 
-PyRep* CorporationDB::GetMedalsReceived(int32 charID)
+PyRep* CorporationDB::GetMedalsReceived(uint32 charID, bool publicOnly)
 {
+    // one row per award:  the character sheet groups them by medalID ('awarded N times').  medals that no longer exist
+    //  are left out (their title and graphics are gone)
     DBQueryResult res;
     if (!sDatabase.RunQuery(res,
         "SELECT chr.medalID, crp.creatorID, crp.noRecepients, crp.date, crp.title, crp.description, chr.status"
         " FROM chrMedals AS chr"
-        " LEFT JOIN crpMedals AS crp USING (medalID)"
-        " WHERE chr.recepientID = %i", charID))
+        " JOIN crpMedals AS crp USING (medalID)"
+        " WHERE chr.recepientID = %u%s", charID, (publicOnly ? " AND chr.status = 3" : "")))
     {
         codelog(CORP__DB_ERROR, "Error in query: %s", res.error.c_str());
         return nullptr;
@@ -409,13 +432,12 @@ PyRep* CorporationDB::GetMedalsReceived(int32 charID)
     return DBResultToCRowset(res);
 }
 
-PyRep* CorporationDB::GetMedalsReceivedDetails(int32 charID)
+PyRep* CorporationDB::GetMedalsReceivedDetails(uint32 charID, bool publicOnly)
 {
-    // SELECT recepientID, medalID, corpID, dateTime FROM chrMedals WHERE recepientID = %u
     DBQueryResult res;
     if (!sDatabase.RunQuery(res,
         "SELECT medalID, part, graphic, color FROM crpMedalData"
-        " WHERE medalID IN (SELECT medalID FROM chrMedals WHERE recepientID = %i)", charID))
+        " WHERE medalID IN (SELECT medalID FROM chrMedals WHERE recepientID = %u%s)", charID, (publicOnly ? " AND status = 3" : "")))
     {
         codelog(CORP__DB_ERROR, "Error in query: %s", res.error.c_str());
         return nullptr;
@@ -424,20 +446,24 @@ PyRep* CorporationDB::GetMedalsReceivedDetails(int32 charID)
     return DBResultToCRowset(res);
 }
 
-PyObjectEx* CorporationDB::GetMedalDetails(int32 medalID)
+PyRep* CorporationDB::GetMedalDetails(uint32 medalID)
 {
+    // the client reads GetMedalDetails(medalID).info[0]:  ownerID, numberOfRecipients, title, description
+    //  (infosvc's medal info window, notificationUtil.ParamCharacterMedalNotification)
     DBQueryResult res;
     if (!sDatabase.RunQuery(res,
         "SELECT medalID, ownerID, creatorID, noRecepients AS numberOfRecipients, date, title, description FROM crpMedals"
-        " WHERE medalID = %i", medalID))
+        " WHERE medalID = %u", medalID))
     {
         codelog(CORP__DB_ERROR, "Error in query: %s", res.error.c_str());
         return nullptr;
     }
+    if (res.GetRowCount() < 1)
+        return nullptr;
 
-    //  SELECT medalID, ownerID, creatorID, noRecepients, date, title, description FROM crpMedals WHERE medalID
-
-    return DBResultToCRowset(res);
+    PyDict* dict = new PyDict();
+        dict->SetItemString("info", DBResultToCRowset(res));
+    return new PyObject("util.KeyVal", dict);
 }
 
 PyRep* CorporationDB::GetMedalStatuses()
@@ -448,51 +474,48 @@ PyRep* CorporationDB::GetMedalStatuses()
     return DBResultToRowset(res);
 }
 
-void CorporationDB::RemoveMedal(uint32 charID, int32 medalID)
+void CorporationDB::GiveMedalToCharacters(uint32 issuerID, uint32 corpID, uint32 medalID, const std::vector< uint32 >& charVec, const std::string& reason)
 {
-    DBerror err;
-    uint32 affected(0);
-    if (!sDatabase.RunQuery(err, affected, "DELETE FROM chrMedals WHERE recepientID = %u AND medalID = %i", charID, medalID)) {
-        codelog(CORP__DB_ERROR, "Error in query: %s", err.c_str());
+    if (charVec.empty())
         return;
-    }
-    if (affected > 0)
-        sDatabase.RunQuery(err, "UPDATE crpMedals SET noRecepients = GREATEST(0, CAST(noRecepients AS SIGNED) - %u) WHERE medalID = %i", affected, medalID);
-}
 
-void CorporationDB::GiveMedalToCharacters(uint32 issuerID, uint32 corpID, int32 medalID, std::vector< uint32 >& charVec, const std::string& reason)
-{
-    // INSERT INTO chrMedals(recepientID, medalID, corpID, issuerID, reason, date, status) VALUES ()
     std::string eReason;
     sDatabase.DoEscapeString(eReason, reason);
 
-    // loop thru data and add to query
+    // new awards start private (chrMedals.status default 2):  the recipient makes them public from the character sheet
+    int64 now = GetFileTimeNow();
     std::ostringstream query;
-    query << "INSERT INTO chrMedals(recepientID, medalID, corpID, issuerID, date, reason)";
-    query << "VALUES ";
-
+    query << "INSERT INTO chrMedals (recepientID, medalID, corpID, issuerID, date, reason, status) VALUES ";
     bool first = true;
     for (auto cur : charVec) {
-        if (first) {
-            first = false;
-        } else {
+        if (!first)
             query << ",";
-        }
-        query << "(" << std::to_string(cur) << "," << std::to_string(medalID) << "," << std::to_string(corpID) << "," << std::to_string(issuerID) << ",";
-        query << std::to_string(GetFileTimeNow()) << ",'" << eReason.c_str() << "')";
+        first = false;
+        query << "(" << cur << "," << medalID << "," << corpID << "," << issuerID << "," << now << ",'" << eReason << "',"
+              << MedalRules::StatusPrivate << ")";
     }
 
-    if (!first ) {
-        DBerror err;
-        sDatabase.RunQuery(err, query.str().c_str());
-        sDatabase.RunQuery(err, "UPDATE crpMedals SET noRecepients=noRecepients + %u WHERE medalID = %u", (uint32)charVec.size(), medalID );
+    DBerror err;
+    if (!sDatabase.RunQuery(err, "%s", query.str().c_str())) {
+        codelog(CORP__DB_ERROR, "Error in query: %s", err.c_str());
+        return;
     }
+    // numberOfRecipients is the times the medal was awarded ('UI/InfoWindow/NumberOfTimesAwarded')
+    sDatabase.RunQuery(err, "UPDATE crpMedals SET noRecepients = noRecepients + %u WHERE medalID = %u", (uint32)charVec.size(), medalID);
 }
 
-void CorporationDB::SetMedalStatus(uint32 charID, uint16 medalID, uint8 status)
+uint32 CorporationDB::SetMedalStatus(uint32 charID, uint32 medalID, uint8 status)
 {
     DBerror err;
-    sDatabase.RunQuery(err, "UPDATE chrMedals SET status = %u WHERE recepientID = %u AND medalID = %u", status, charID, medalID);
+    uint32 affected(0);
+    if (!sDatabase.RunQuery(err, affected,
+        "UPDATE chrMedals SET status = %u WHERE recepientID = %u AND medalID = %u AND status IN (%u, %u)",
+        status, charID, medalID, MedalRules::StatusPrivate, MedalRules::StatusPublic))
+    {
+        codelog(CORP__DB_ERROR, "Error in query: %s", err.c_str());
+        return 0;
+    }
+    return affected;
 }
 
 bool CorporationDB::IsTickerTaken(std::string ticker) {

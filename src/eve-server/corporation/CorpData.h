@@ -87,12 +87,6 @@ namespace Corp {
         std::string appText;
     };
 
-    struct MedalData {
-        int8 part;
-        int16 color;
-        std::string graphic;
-    };
-
     /* one member edit from UpdateMember/UpdateMembers/ExecuteActions.  unset fields are unchanged (the client sends None) */
     struct MemberUpdate {
         uint32 charID = 0;

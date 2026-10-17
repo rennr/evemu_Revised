@@ -45,14 +45,23 @@ protected:
     PyResult GetRecruitmentAdRegistryData(PyCallArgs& call);
     PyResult GetRecruitmentAdsByCriteria(PyCallArgs& call, PyInt* typeMask, PyBool* inAlliance, std::optional<PyInt*> minMembers, std::optional<PyInt*> maxMembers);
     PyResult GetRecruitmentAdsForCorporation(PyCallArgs& call);
-    PyResult CreateMedal(PyCallArgs& call, PyWString* name, PyWString* description, PyList* medalData);
+    /* medals.py:  CreateMedal(title, description, graphics) raises ConfirmCreatingMedal {cost}, then
+     *  CreateMedal(title, description, graphics, True) pays and creates.  the strings are str or unicode */
+    PyResult CreateMedal(PyCallArgs& call, PyRep* title, PyRep* description, PyList* graphics, std::optional<PyBool*> confirmed);
     PyResult GetMedalsReceived(PyCallArgs& call, PyInt* characterID);
     PyResult GetMedalDetails(PyCallArgs& call, PyInt* medalID);
     PyResult GetAllCorpMedals(PyCallArgs& call, PyInt* corporationID);
     PyResult GetRecipientsOfMedal(PyCallArgs& call, PyInt* medalID);
-    PyResult GiveMedalToCharacters(PyCallArgs& call, PyInt* medalID, PyList* recipientIDs, PyWString* reason);
+    // GiveMedalToCharacters(medalID, [charID], reason) raises ConfirmGivingMedal {cost}, then the same with True
+    PyResult GiveMedalToCharacters(PyCallArgs& call, PyInt* medalID, PyRep* recipientIDs, PyRep* reason, std::optional<PyBool*> confirmed);
     PyResult GetMedalStatuses(PyCallArgs& call);
     PyResult SetMedalStatus(PyCallArgs& call, PyDict* newStatus);
+
+private:
+    // Director or Personnel Manager of a player corp (medals.py NeedRolesError), else CrpAccessDenied
+    void CheckMedalRoles(Client* pClient);
+    // the session's corp wallet division, which the character must be able to take from
+    uint16 MedalWalletKey(Client* pClient);
 };
 
 #endif

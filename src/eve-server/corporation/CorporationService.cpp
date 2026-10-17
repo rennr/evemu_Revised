@@ -27,12 +27,16 @@
 
 
 #include "StaticDataMgr.h"
+#include "account/AccountDB.h"
 #include "account/AccountService.h"
 #include "EVE_Mail.h"
 #include "EntityList.h"
 #include "corporation/CorpMgr.h"
 #include "corporation/CorporationService.h"
 #include "station/StationDataMgr.h"
+
+#include <algorithm>
+#include <cstdint>
 
 CorporationService::CorporationService() :
     Service("corporationSvc")
@@ -138,99 +142,140 @@ PyResult CorporationService::GetRecruitmentAdsForCorporation(PyCallArgs& call)
 
 
 /**     ***********************************************************************
- * @note   these below are partially coded
+ * @note   corporation decorations (medals).  the rules are in EVE_Medals.h
  */
 
-PyResult CorporationService::CreateMedal(PyCallArgs &call, PyWString* name, PyWString* description, PyList* medalData) {
-    // destroy = sm.StartService('medals').CreateMedal(mName, mDesc, cMedalData)
-    //  destroy = true will close window
+void CorporationService::CheckMedalRoles(Client* pClient)
+{
+    if (!IsPlayerCorp(pClient->GetCorporationID()) or !CorpMgr::HasRole(pClient->GetCorpRole(), Corp::Role::PersonnelManager))
+        throw UserError("CrpAccessDenied")
+                .AddFormatValue("reason", new PyString("You must be a Director or Personnel Manager to create and award decorations."));
+}
 
-    if (name->size() > 30)
-        throw UserError ("MedalNameTooLong");
-    if (description->size() < 3)
-        throw UserError ("MedalDescriptionTooShort");
-    if (description->size() > 150)
-        throw UserError ("MedalDescriptionTooLong");
+uint16 CorporationService::MedalWalletKey(Client* pClient)
+{
+    // MedalRibbonPickerWindow.SubmitData:  the active division (corpAccountKey), one the character can take from
+    int32 key = pClient->GetCorpAccountKey();
+    if (!MedalRules::IsCorpWalletKey(key) or !CorpMgr::HasRole(pClient->GetCorpRole(), Corp::AccountTakeRole(key)))
+        throw UserError("CrpAccessDenied")
+                .AddFormatValue("reason", new PyString("You can't take ISK from the active corporation wallet division."));
+    return (uint16)key;
+}
 
-    //take the money, send wallet blink event record the transaction in corp journal.  paid to SCC
+PyResult CorporationService::CreateMedal(PyCallArgs &call, PyRep* title, PyRep* description, PyList* graphics, std::optional<PyBool*> confirmed)
+{
+    // closeParent = sm.StartService('medals').CreateMedal(mName, mDesc, cMedalData)
+    //  cMedalData = [[part, 'label.icon', color], ...]  part 1 ribbon, 2 medal (medalribbonranks.MedalRibbonPickerWindow)
+    _log(CORP__CALL, "CorporationService::Handle_CreateMedal()");
+    call.Dump(CORP__CALL_DUMP);
+
+    Client* pClient = call.client;
+    CheckMedalRoles(pClient);
+    if (!(title->IsString() or title->IsWString()) or !(description->IsString() or description->IsWString()))
+        throw CustomError("The decoration needs a name and a description.");
+
+    std::string sTitle = PyRep::StringContent(title), sDesc = PyRep::StringContent(description);
+    switch (MedalRules::CheckText(sTitle, sDesc)) {
+        case MedalRules::TextResult::Ok:
+            break;
+        case MedalRules::TextResult::NameInvalid:
+            throw UserError("MedalNameInvalid");
+        case MedalRules::TextResult::NameTooLong:
+            throw UserError("MedalNameTooLong").AddFormatValue("maxLength", new PyString(std::to_string(MedalRules::MaxNameLength)));
+        case MedalRules::TextResult::DescriptionTooShort:
+            throw UserError("MedalDescriptionTooShort").AddFormatValue("minLength", new PyString(std::to_string(MedalRules::MinDescriptionLength)));
+        case MedalRules::TextResult::DescriptionTooLong:
+            throw UserError("MedalDescriptionTooLong").AddFormatValue("maxLength", new PyString(std::to_string(MedalRules::MaxDescriptionLength)));
+    }
+
+    std::vector<MedalRules::Layer> layers;
+    for (PyList::const_iterator itr = graphics->begin(); itr != graphics->end(); ++itr) {
+        PyList* list = (*itr)->IsList() ? (*itr)->AsList() : nullptr;
+        if ((list == nullptr) or (list->size() < 3) or !list->GetItem(0)->IsInt()
+        or !(list->GetItem(1)->IsString() or list->GetItem(1)->IsWString()))
+            throw CustomError("The decoration's design is not valid.");
+        MedalRules::Layer layer;
+            layer.part = list->GetItem(0)->AsInt()->value();
+            layer.graphic = PyRep::StringContent(list->GetItem(1));
+            PyRep* color = list->GetItem(2);
+            layer.color = MedalRules::LayerColor(PyRep::IntegerValue(color), (color->IsInt() or color->IsLong()));
+        layers.push_back(layer);
+    }
+    if (!MedalRules::ValidDesign(layers))
+        throw CustomError("The decoration's design is not valid.");
+
+    uint32 corpID = pClient->GetCorporationID();
+    uint16 accountKey = MedalWalletKey(pClient);
+    double cost = sConfig.rates.medalCreateCost;
+    if (!confirmed.has_value() or !confirmed.value()->value()) {
+        double balance = AccountDB::GetCorpBalance(corpID, accountKey);
+        if (balance < cost)
+            throw UserError("NotEnoughMoney").AddISK("amount", cost).AddISK("balance", balance);
+        // the client asks the pilot (medals.CreateMedal formats e.dict['cost']) and calls again with True
+        throw UserError("ConfirmCreatingMedal").AddFormatValue("cost", new PyFloat(cost));
+    }
+
+    uint32 medalID = m_db.CreateMedal(corpID, pClient->GetCharacterID(), sTitle, sDesc, layers);
+    if (medalID == 0)
+        throw CustomError("The decoration could not be saved.");
+
+    // paid to SCC from the active division (refMedalCreation, argID1 the creating character)
     std::string reason = "DESC: Medal Creation by ";
-    reason += call.client->GetName();
-    reason += " in ";   // just extra shit.  this will show in tooltip.  ;)
-    reason += stDataMgr.GetStationName(call.client->GetStationID());
-    AccountService::TransferFunds(
-        call.client->GetCorporationID(),
-        corpSCC,
-        sConfig.rates.medalCreateCost,
-        reason.c_str(),
-        Journal::EntryType::MedalCreation,
-        call.client->GetStationID(),
-        Account::KeyType::Cash
-    );
-
-    // not sure of the requirements for these errors....
-     // MedalNameInvalid, MedalNameInvalid2, MedalDescriptionInvalid2
-
-    uint16 medalID = m_db.CreateMedal(call.client->GetCorporationID(), call.client->GetCharacterID(), name->content (), description->content ());
-    if (medalID == 0) {
-        // error on save.
-        call.client->SendErrorMsg("Error when saving Medal Data.  Ref: ServerError xxxxx");
-        return nullptr;
+    reason += pClient->GetName();
+    try {
+        AccountService::TransferFunds(corpID, corpSCC, cost, reason.c_str(), Journal::EntryType::MedalCreation,
+                                      pClient->GetCharacterID(), accountKey, Account::KeyType::Cash, pClient);
+    } catch (...) {
+        // not paid (NotEnoughMoneyCorp):  no medal
+        m_db.DeleteMedal(medalID);
+        throw;
     }
 
-    PyList* list(nullptr);
-    std::vector<Corp::MedalData> dataList;
-    //if (is_log_enabled(CORP__PKT_TRACE))
-    //    args.data->Dump(CORP__PKT_TRACE, "");
-    for (PyList::const_iterator itr = medalData->begin(); itr != medalData->end(); ++itr) {
-        list = (*itr)->AsList();
-        if (list == nullptr)
-            continue;
-        // type:  1 = ribbon, 2 = medal
-        Corp::MedalData data = Corp::MedalData();
-            data.part = PyRep::IntegerValue(list->GetItem(0));
-            data.graphic = PyRep::StringContent(list->GetItem(1));
-            data.color = PyRep::IntegerValue(list->GetItem(2));
-        dataList.push_back( data );
-    }
+    // corp_ui_member_decorations reloads the corp's medals (medals.OnCorporationMedalAdded invalidates GetAllCorpMedals)
+    PyTuple* payload = new PyTuple(1);
+        payload->SetItem(0, new PyInt(medalID));
+    sEntityList.CorpNotify(corpID, Notify::Types::CorpNews, "OnCorporationMedalAdded", "corpid", payload);
 
-    // this will either save data or it wont...
-    m_db.SaveMedalData(medalID, dataList);
-
-    return PyStatic.NewFalse();
+    return nullptr;
 }
 
 PyResult CorporationService::GetMedalsReceived(PyCallArgs &call, PyInt* characterID) {
-    // this should be cached
     //  medalInfo, medalGraphics = sm.StartService('medals').GetMedalsReceived(charID)
-    /*
-     * 13:25:05 [CorpCallDump]   Call Arguments:
-     * 13:25:05 [CorpCallDump]      Tuple: 1 elements
-     * 13:25:05 [CorpCallDump]       [ 0]    Integer: 90000000
-     */
+    //   the character sheet for the character's own, the info window's Decorations tab for anyone (public ones only)
     _log(CORP__CALL, "CorporationService::Handle_GetMedalsReceived()");
     call.Dump(CORP__CALL_DUMP);
 
+    uint32 charID = characterID->value();
+    bool publicOnly = (charID != call.client->GetCharacterID());
     PyTuple* res = new PyTuple(2);
-        res->SetItem(0, m_db.GetMedalsReceived(characterID->value()));
-        res->SetItem(1, m_db.GetMedalsReceivedDetails(characterID->value()));
+        res->SetItem(0, m_db.GetMedalsReceived(charID, publicOnly));
+        res->SetItem(1, m_db.GetMedalsReceivedDetails(charID, publicOnly));
     if (is_log_enabled(CORP__RSP_DUMP))
         res->Dump(CORP__RSP_DUMP, "");
     return res;
 }
 
 PyResult CorporationService::GetMedalDetails(PyCallArgs &call, PyInt* medalID)
-{   // working
+{
+    // GetMedalDetails(medalID).info[0]:  the medal info window and the CharMedal notification
     _log(CORP__CALL, "CorporationService::Handle_GetMedalDetails()");
     call.Dump(CORP__CALL_DUMP);
 
-    return m_db.GetMedalDetails(medalID->value());
+    PyRep* res = m_db.GetMedalDetails(medalID->value());
+    if (res == nullptr)
+        throw CustomError("That decoration no longer exists.");
+    return res;
 }
 
 PyResult CorporationService::GetAllCorpMedals(PyCallArgs& call, PyInt* corporationID)
-{   //working
-    // medals, medalDetails = sm.RemoteSvc('corporationSvc').GetAllCorpMedals(corpID)
+{
+    // medals, medalDetails = sm.RemoteSvc('corporationSvc').GetAllCorpMedals(session.corpid)
+    //  the corp's decorations tab and the award menu.  another corp's medals (and their designs) are not shown
     _log(CORP__CALL, "CorporationService::Handle_GetAllCorpMedals()");
     call.Dump(CORP__CALL_DUMP);
+
+    if ((uint32)corporationID->value() != call.client->GetCorporationID())
+        throw UserError("CrpAccessDenied").AddFormatValue("reason", new PyString("You can only view your own corporation's decorations."));
 
     PyTuple* res = new PyTuple(2);
         res->SetItem(0, m_db.GetAllCorpMedals(corporationID->value()));
@@ -243,68 +288,89 @@ PyResult CorporationService::GetAllCorpMedals(PyCallArgs& call, PyInt* corporati
 PyResult CorporationService::GetRecipientsOfMedal(PyCallArgs &call, PyInt* medalID)
 {
     //   recipients = sm.RemoteSvc('corporationSvc').GetRecipientsOfMedal(medalID)
-    //          called from GetMedalSubContent in corp_ui_member_deco
+    //    corp_ui_member_decorations.GetMedalSubContent, for the corp's own medals:  the awards and their reasons
     _log(CORP__CALL, "CorporationService::Handle_GetRecipientsOfMedal()");
     call.Dump(CORP__CALL_DUMP);
 
-    /*
-     *     issuerID = recipients.issuerID
-     *     date = recipients.date
-     *     statusID, statusName = self.GetStatus(recipients.status)
-     *     reason = recipients.reason
-     */
+    if (m_db.GetMedalOwner(medalID->value()) != call.client->GetCorporationID())
+        throw UserError("CrpAccessDenied").AddFormatValue("reason", new PyString("You can only view the recipients of your own corporation's decorations."));
+
     return m_db.GetRecipientsOfMedal(medalID->value());
 }
 
-PyResult CorporationService::GiveMedalToCharacters(PyCallArgs &call, PyInt* medalID, PyList* recipientIDs, PyWString* reason) {
-    //  sm.RemoteSvc('corporationSvc').GiveMedalToCharacters(medalID, recipientID, reason)
-    /*
-     * 13:24:32 [CorpCallDump]   Call Arguments:
-     * 13:24:32 [CorpCallDump]      Tuple: 3 elements
-     * 13:24:32 [CorpCallDump]       [ 0]    Integer: 8
-     * 13:24:32 [CorpCallDump]       [ 1]   List: 1 elements
-     * 13:24:32 [CorpCallDump]       [ 1]   [ 0]    Integer: 90000000
-     * 13:24:32 [CorpCallDump]       [ 2]    WString: 'testing this shit'
-     */
+PyResult CorporationService::GiveMedalToCharacters(PyCallArgs &call, PyInt* medalID, PyRep* recipientIDs, PyRep* reason, std::optional<PyBool*> confirmed)
+{
+    //  sm.RemoteSvc('corporationSvc').GiveMedalToCharacters(medalID, recipientID, reason[, True])
+    //   menusvc.AwardDecoration for selected corp members, recipientID a list of charIDs
     _log(CORP__CALL, "CorporationService::Handle_GiveMedalToCharacters()");
     call.Dump(CORP__CALL_DUMP);
 
-    // can award one medal to multiple chars at once, at 5m isk per award
-    uint32 corpID = call.client->GetCorporationID();
-    std::vector< uint32 > charVec;
-    for (PyList::const_iterator itr = recipientIDs->begin(); itr != recipientIDs->end(); ++itr)
-        if (IsCharacterID(PyRep::IntegerValue(*itr)))
-            charVec.push_back(PyRep::IntegerValue(*itr));
+    Client* pClient = call.client;
+    CheckMedalRoles(pClient);
+    uint32 corpID = pClient->GetCorporationID();
+    if (m_db.GetMedalOwner(medalID->value()) != corpID)
+        throw UserError("CrpAccessDenied").AddFormatValue("reason", new PyString("You can only award your own corporation's decorations."));
+
+    if (!(reason->IsString() or reason->IsWString() or reason->IsNone()))
+        throw CustomError("The reason for the award is not valid.");
+    std::string sReason = PyRep::StringContent(reason);
+    if (!MedalRules::ReasonOk(sReason))
+        throw CustomError("The reason for the award can be at most %u characters.", (uint32)MedalRules::MaxReasonLength);
+
+    // the recipients:  characters, once each, who are members of the corp now
+    std::vector<PyRep*> ids;
+    if (recipientIDs->IsList()) {
+        for (PyList::const_iterator itr = recipientIDs->AsList()->begin(); itr != recipientIDs->AsList()->end(); ++itr)
+            ids.push_back(*itr);
+    } else if (recipientIDs->IsTuple()) {
+        for (PyTuple::const_iterator itr = recipientIDs->AsTuple()->begin(); itr != recipientIDs->AsTuple()->end(); ++itr)
+            ids.push_back(*itr);
+    } else if (recipientIDs->IsInt()) {
+        ids.push_back(recipientIDs);
+    }
+    std::vector<uint32> charVec;
+    for (auto cur : ids) {
+        if (!cur->IsInt())
+            continue;
+        int32 charID = cur->AsInt()->value();
+        if (!IsCharacterID(charID) or (std::find(charVec.begin(), charVec.end(), (uint32)charID) != charVec.end()))
+            continue;
+        if ((uint32)m_db.GetCorpIDforChar(charID) != corpID)
+            continue;
+        charVec.push_back(charID);
+    }
     if (charVec.empty())
-        return nullptr;
+        throw UserError("MedalNoValidRecipients");
 
-    double cost = sConfig.rates.medalAwardCost;
-    cost *= charVec.size();
+    uint16 accountKey = MedalWalletKey(pClient);
+    double cost = MedalRules::AwardTotal(charVec.size(), sConfig.rates.medalAwardCost);
+    if (!confirmed.has_value() or !confirmed.value()->value()) {
+        double balance = AccountDB::GetCorpBalance(corpID, accountKey);
+        if (balance < cost)
+            throw UserError("NotEnoughMoney").AddISK("amount", cost).AddISK("balance", balance);
+        throw UserError("ConfirmGivingMedal").AddFormatValue("cost", new PyFloat(cost));
+    }
 
-    //take the money, send wallet blink event record the transaction in corp journal.  paid to SCC
+    // paid to SCC from the active division (refMedalIssuing, argID1 the issuing character), then the awards
     std::string finalReason = "DESC: Awarding Medal by ";
-    finalReason += call.client->GetName();
-    AccountService::TransferFunds(
-        corpID,
-        corpSCC,
-        cost,
-        finalReason,
-        Journal::EntryType::MedalIssuing
-    );
+    finalReason += pClient->GetName();
+    AccountService::TransferFunds(corpID, corpSCC, cost, finalReason, Journal::EntryType::MedalIssuing,
+                                  pClient->GetCharacterID(), accountKey, Account::KeyType::Cash, pClient);
 
-    m_db.GiveMedalToCharacters(call.client->GetCharacterID(), corpID, medalID->value(), charVec, reason->content());
+    m_db.GiveMedalToCharacters(pClient->GetCharacterID(), corpID, medalID->value(), charVec, sReason);
 
-    // CharMedal {medalID, corpID, reason} and OnMedalIssued() to the recipients, OnCorporationMedalAdded(medalID) to the corp
+    // CharMedal {medalID, corpID, reason} (notificationUtil.ParamCharacterMedalNotification) and OnMedalIssued() to
+    //  the recipients, OnCorporationMedalAdded(medalID) to the corp (the award count and recipients changed)
     for (auto cur : charVec) {
         PyDict* data = new PyDict();
             data->SetItemString("medalID", new PyInt(medalID->value()));
             data->SetItemString("corpID", new PyInt(corpID));
-            data->SetItemString("reason", new PyWString(reason->content()));
-        sCorpMgr.NotifyChar(cur, Notify::Types::CharMedal, call.client->GetCharacterID(), data);
-        Client* pClient = sEntityList.FindClientByCharID(cur);
-        if (pClient != nullptr) {
+            data->SetItemString("reason", new PyWString(sReason));
+        sCorpMgr.NotifyChar(cur, Notify::Types::CharMedal, pClient->GetCharacterID(), data);
+        Client* pRecipient = sEntityList.FindClientByCharID(cur);
+        if (pRecipient != nullptr) {
             PyTuple* payload = new PyTuple(0);
-            pClient->SendNotification("OnMedalIssued", "charid", &payload);
+            pRecipient->SendNotification("OnMedalIssued", "charid", &payload);
         }
     }
     PyTuple* payload = new PyTuple(1);
@@ -321,56 +387,41 @@ PyResult CorporationService::GetMedalStatuses(PyCallArgs &call)
     _log(CORP__CALL, "CorporationService::Handle_GetMedalStatuses()");
     call.Dump(CORP__CALL_DUMP);
 
-    //  cant find any other references to this, so it's hacked in the db call
-    // statusID, statusName
+    // statusID, statusName (crpMedalStatus)
     PyRep* res = m_db.GetMedalStatuses();
     if (is_log_enabled(CORP__RSP_DUMP))
         res->Dump(CORP__RSP_DUMP, "");
     return res;
 }
 
-
-/**     ***********************************************************************
- * @note   these do absolutely nothing at this time....
- */
-
 PyResult CorporationService::SetMedalStatus(PyCallArgs &call, PyDict* newStatus)
 {
-    //  sm.RemoteSvc('corporationSvc').SetMedalStatus(statusdict)
-    //    this is called from char PD for setting view permissions on received medals
-    /*
-     * 02:24:28 [CorpCall] CorporationService::Handle_SetMedalStatus()
-     * 02:24:28 [CorpCallDump]   Call Arguments:
-     * 02:24:28 [CorpCallDump]      Tuple: 1 elements
-     * 02:24:28 [CorpCallDump]       [ 0]  Dictionary: 1 entries
-     * 02:24:28 [CorpCallDump]       [ 0]   [ 0]   Key:    Integer: 1   << medalID
-     * 02:24:28 [CorpCallDump]       [ 0]   [ 0] Value:    Integer: 3   << public
-     *
-     * 02:36:18 [CorpCall] CorporationService::Handle_SetMedalStatus()
-     * 02:36:18 [CorpCallDump]   Call Arguments:
-     * 02:36:18 [CorpCallDump]      Tuple: 1 elements
-     * 02:36:18 [CorpCallDump]       [ 0]  Dictionary: 1 entries
-     * 02:36:18 [CorpCallDump]       [ 0]   [ 0]   Key:    Integer: 1   << medalID
-     * 02:36:18 [CorpCallDump]       [ 0]   [ 0] Value:    Integer: 1   << remove
-     *
-     */
+    //  sm.RemoteSvc('corporationSvc').SetMedalStatus({medalID: status})
+    //   the character sheet's decoration permissions:  2 private, 3 public, 1 remove (DeleteMedalConfirmation).
+    //   a removed award stays in chrMedals with status 1:  the corp keeps its award history, the character sheet no
+    //   longer lists it (GetMedalsReceivedWithFlag keeps 2 and 3) and it can't be shown again
     _log(CORP__CALL, "CorporationService::Handle_SetMedalStatus()");
     call.Dump(CORP__CALL_DUMP);
 
-    // {medalID: status}  crpMedalStatus:  1 = remove the award, 2 = private, 3 = public
     uint32 charID = call.client->GetCharacterID();
+    uint32 changed(0);
     for (PyDict::const_iterator itr = newStatus->begin(); itr != newStatus->end(); ++itr) {
-        int32 medalID = PyRep::IntegerValue(itr->first);
-        uint8 status = PyRep::IntegerValue(itr->second);
-        if (status == 1) {
-            m_db.RemoveMedal(charID, medalID);
-        } else if ((status == 2) or (status == 3)) {
-            m_db.SetMedalStatus(charID, medalID, status);
-        }
+        if (!(itr->first->IsInt() or itr->first->IsLong()) or !(itr->second->IsInt() or itr->second->IsLong()))
+            continue;
+        int64 medalID = PyRep::IntegerValue(itr->first);
+        int64 status = PyRep::IntegerValue(itr->second);
+        if ((medalID <= 0) or (medalID > INT32_MAX))
+            continue;
+        // the current status is checked in the update (only private and public awards change)
+        if (!MedalRules::CanSetStatus(MedalRules::StatusPrivate, (int32)status))
+            continue;
+        changed += m_db.SetMedalStatus(charID, (uint32)medalID, (uint8)status);
     }
 
-    PyTuple* payload = new PyTuple(0);
-    call.client->SendNotification("OnMedalStatusChanged", "charid", &payload);
+    if (changed > 0) {
+        PyTuple* payload = new PyTuple(0);
+        call.client->SendNotification("OnMedalStatusChanged", "charid", &payload);
+    }
     return nullptr;
 }
 

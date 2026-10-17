@@ -31,6 +31,7 @@
 #include "packets/CorporationPkts.h"
 
 #include "corporation/CorpData.h"
+#include "EVE_Medals.h"
 
 
 struct OfficeData;
@@ -154,19 +155,26 @@ public:
 
     double GetCloneTypeCostByID(uint32 cloneTypeID);
 
-    PyRep* GetMedalsReceived(int32 charID);
+    // the character's awards (one row each) and their medals' graphics.  publicOnly for anyone but the character
+    PyRep* GetMedalsReceived(uint32 charID, bool publicOnly);
+    PyRep* GetMedalsReceivedDetails(uint32 charID, bool publicOnly);
     PyRep* GetAllCorpMedals(uint32 corpID);
     PyRep* GetCorpMedalData(uint32 corpID);
-    PyRep* GetMedalsReceivedDetails(int32 charID);
-    PyRep* GetRecipientsOfMedal(int32 medalID);
+    PyRep* GetRecipientsOfMedal(uint32 medalID);
     PyRep* GetMedalStatuses();
-    PyObjectEx* GetMedalDetails(int32 medalID);
-    void GiveMedalToCharacters(uint32 issuerID, uint32 corpID, int32 medalID, std::vector< uint32 >& charVec, const std::string& reason);
-    uint16 CreateMedal(uint32 ownerID, uint32 creatorID, const std::string& title, const std::string& description);
-    void SaveMedalData(int64 medalID, std::vector< Corp::MedalData >& dataList);
-    void SetMedalStatus(uint32 charID, uint16 medalID, uint8 status);
-    // the character gives back an award (SetMedalStatus 1)
-    void RemoveMedal(uint32 charID, int32 medalID);
+    // util.KeyVal {info: the medal's row}.  nullptr when there is no such medal
+    PyRep* GetMedalDetails(uint32 medalID);
+    // the corp that owns the medal, 0 for none
+    uint32 GetMedalOwner(uint32 medalID);
+    void GiveMedalToCharacters(uint32 issuerID, uint32 corpID, uint32 medalID, const std::vector< uint32 >& charVec, const std::string& reason);
+    // the medal and its graphic layers.  returns the new medalID, 0 when it was not saved
+    uint32 CreateMedal(uint32 ownerID, uint32 creatorID, const std::string& title, const std::string& description,
+                       const std::vector< MedalRules::Layer >& layers);
+    // takes back a medal that was not paid for
+    void DeleteMedal(uint32 medalID);
+    /* the recipient's status for every award of the medal they hold (2 private, 3 public, 1 removed).  only awards
+     *  that are not removed change;  returns the rows changed */
+    uint32 SetMedalStatus(uint32 charID, uint32 medalID, uint8 status);
 
     PyRep* GetAdTypeData();
     PyRep* GetAdGroupData();
