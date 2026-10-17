@@ -9,6 +9,8 @@ changes on their next login, or straight away with "Reload Insider" on the neoco
 What it adds:
   - svc.slash: the client-side slash service.  CCP shipped this with their dev tools; without it, typing
     /commands in chat and several built-in GM menu entries (/load, /create, /spawn, /fit...) fail.
+    A typed command's result is echoed into that chat channel (only you see it); menu and link results
+    show as a short notify.  The whole result is always in the Log window.
   - form.AttributeInspector, used by the built-in "GM: Inspect Attributes" menu entry.
   - svc.insider: an "EVEmu Insider" window with common GM actions (neocom: Toggle Insider).
   - an "EVEmu GM Tools" submenu next to "GM / WM Extras" on characters, items and objects in space,
@@ -21,6 +23,8 @@ What it adds:
 Everything here ends up as a slash command handled by the server (see src/eve-server/admin).
 """
 
+import re
+import sys
 import types
 import blue
 import service
@@ -33,6 +37,7 @@ import listentry
 import nasty
 import svc
 import log
+import uthread
 
 SOURCE_NAME = 'evemu_gmtools.py'
 GM_ROLES = service.ROLE_GML | service.ROLE_WORLDMOD
@@ -44,14 +49,174 @@ MENU_LABEL = 'EVEmu GM Tools'
 # ------------------------------------------------------------------------------------------------
 
 def Slash(cmd):
-    """Sends a slash command to the server and shows what it returns."""
+    """Sends a slash command to the server and shows what it returns (a short notify, the whole of it in the Log window)."""
     res = sm.RemoteSvc('slash').SlashCmd(cmd)
-    if res is not None and res != '':
-        try:
-            eve.Message('CustomNotify', {'notify': u'%s' % (res,)})
-        except Exception:
-            log.LogInfo('EVEmu GM tools:', cmd, '->', res)
+    NotifyResult(cmd, res)
     return res
+
+
+# ------------------------------------------------------------------------------------------------
+#  showing slash command results
+# ------------------------------------------------------------------------------------------------
+#  the server returns plain text ('\n' line breaks, '<stationID>'-style usage placeholders) or the markup it uses
+#  for modal windows ('<br>', <b>, <color=...>).  both are turned into lines of label markup:  line breaks kept,
+#  simple formatting kept, anything else shown as typed.
+
+ECHO_PREFIX = u'/slash> '       # lscchannel FormatTxt shows a local echo starting '/slash' in cyan, without the '/'
+ECHO_WIDTH = 230                # visible characters per chat entry.  the channel cuts local echoes at 253 (CHT_MAX_INPUT)
+ECHO_MAX_ENTRIES = 25           # chat entries per result.  the channel keeps 100 (MAXMSGS)
+NOTIFY_MAX_LINES = 6
+NOTIFY_MAX_CHARS = 400
+
+_TAG_RE = re.compile(u'(<[^<>]*>)')
+_TAG_NAME_RE = re.compile(u'^<\\s*/?\\s*([A-Za-z]+)')
+_ENTITY_RE = re.compile(u'&(?!(?:lt|gt|amp|quot|apos|#[0-9]+);)')
+_KEEP_TAGS = ('b', 'i', 'u', 'color', 'fontsize')
+_DROP_TAGS = ('span', 'font', 'center', 'left', 'right', 'hint', 'p', 'a', 'url', 'div')
+
+
+def _ToText(res):
+    if res is None:
+        return u''
+    if isinstance(res, unicode):
+        return res
+    if isinstance(res, str):
+        return res.decode('utf-8', 'replace')
+    if isinstance(res, (list, tuple)):
+        return u'\n'.join([_ToText(r) for r in res])
+    try:
+        return unicode(res)
+    except Exception:
+        return repr(res).decode('latin-1')
+
+
+def _Escape(text):
+    return _ENTITY_RE.sub(u'&amp;', text).replace(u'<', u'&lt;').replace(u'>', u'&gt;')
+
+
+def _WrapText(text, width):
+    chunks = []
+    while len(text) > width:
+        cut = text.rfind(u' ', 0, width)
+        if cut < width / 2:
+            cut = width
+        chunks.append(text[:cut])
+        text = text[cut:].lstrip(u' ')
+    chunks.append(text)
+    return chunks
+
+
+def ResultLines(res, width=ECHO_WIDTH):
+    """The result as [(visible length, label markup)], one per line, lines longer than width wrapped."""
+    text = _ToText(res).replace(u'\r\n', u'\n').replace(u'\r', u'\n').replace(u'\t', u'    ')
+    lines = [[]]   # each line: [(isTag, text)]
+    for part in _TAG_RE.split(text):
+        if not part:
+            continue
+        if part.startswith(u'<'):
+            m = _TAG_NAME_RE.match(part)
+            name = m.group(1).lower() if m else None
+            if name == 'br':
+                lines.append([])
+                continue
+            if name == 't':
+                lines[-1].append((False, u'    '))
+                continue
+            if name in _KEEP_TAGS:
+                lines[-1].append((True, part))
+                continue
+            if name in _DROP_TAGS:
+                continue
+        for i, piece in enumerate(part.split(u'\n')):
+            if i:
+                lines.append([])
+            if piece:
+                lines[-1].append((False, piece))
+
+    out = []
+    for tokens in lines:
+        plain = u''.join([t for isTag, t in tokens if not isTag]).rstrip()
+        if len(plain) > width:
+            # too long for one entry:  wrapped as plain text
+            for chunk in _WrapText(plain, width):
+                out.append((len(chunk), _Escape(chunk)))
+        else:
+            out.append((len(plain), u''.join([t if isTag else _Escape(t) for isTag, t in tokens]).rstrip()))
+    while out and not out[0][0]:
+        out.pop(0)
+    while out and not out[-1][0]:
+        out.pop()
+    return out
+
+
+def EchoResult(wnd, res):
+    """Shows a typed command's result in the chat channel it was typed in, as local echoes (only this client sees them)."""
+    lines = ResultLines(res)
+    if not lines or wnd is None or getattr(wnd, 'destroyed', False):
+        return
+    entries = []
+    cur, curLen = [], 0
+    for length, markup in lines:
+        if cur and curLen + length > ECHO_WIDTH:
+            entries.append(cur)
+            cur, curLen = [], 0
+        cur.append(markup)
+        curLen += length + 1
+    if cur:
+        entries.append(cur)
+    if len(entries) > ECHO_MAX_ENTRIES:
+        entries = entries[:ECHO_MAX_ENTRIES - 1]
+        shown = sum([len(e) for e in entries])
+        entries.append([u'... %d more lines not shown here.  The whole result is in the Log window.' % (len(lines) - shown)])
+    for entry in entries:
+        if getattr(wnd, 'destroyed', False):
+            return
+        # Speak(txt, charid, localEcho) is lscchannel's public output (form.LSCChannel.Speak)
+        wnd.Speak(ECHO_PREFIX + u'<br>'.join(entry), session.charid, 1)
+
+
+def NotifyResult(cmd, res):
+    """A result from a menu or a link:  the first few lines as a notify, the whole of it in the Log window."""
+    lines = ResultLines(res, NOTIFY_MAX_CHARS)
+    if not lines:
+        return
+    try:
+        sm.GetService('logger').AddText(u'slash result: %s' % u'<br>'.join([m for l, m in lines]), 'slash')
+    except Exception:
+        log.LogException('EVEmu GM tools: logging a slash result failed')
+    shown, total = [], 0
+    for length, markup in lines:
+        if len(shown) >= NOTIFY_MAX_LINES or (shown and total + length > NOTIFY_MAX_CHARS):
+            break
+        shown.append(markup)
+        total += length
+    if len(shown) < len(lines):
+        shown.append(u'... (%d more lines in the Log window)' % (len(lines) - len(shown)))
+    try:
+        eve.Message('CustomNotify', {'notify': u'<br>'.join(shown)})
+    except Exception:
+        log.LogInfo('EVEmu GM tools:', cmd, '->', res)
+
+
+def _SlashCaller():
+    """Who called svc.slash:  ('chat', channel window) for a command typed in a chat channel (LSCChannel.InputKeyUp),
+    ('quiet', None) for the client's benchmark script, else ('other', None) (GM menus, cmd: links...)."""
+    try:
+        frame = sys._getframe(2)
+    except Exception:
+        return ('other', None)
+    depth = 0
+    while frame is not None and depth < 6:
+        code = frame.f_code
+        if code.co_name == 'InputKeyUp':
+            wnd = frame.f_locals.get('self', None)
+            if wnd is not None and hasattr(wnd, 'Speak') and hasattr(wnd, 'channelID'):
+                return ('chat', wnd)
+        if 'benchmark' in (code.co_filename or '').lower():
+            return ('quiet', None)
+        frame = frame.f_back
+        depth += 1
+    return ('other', None)
 
 
 def AskAmount(caption, label, setvalue=1, maxvalue=2147483647, minvalue=1):
@@ -392,8 +557,26 @@ class EvemuSlash(service.Service):
     __displayname__ = 'EVEmu Slash Service'
 
     def SlashCmd(self, cmd):
-        # typed commands and the built-in GM menus come through here.  the server does the work
-        return sm.RemoteSvc('slash').SlashCmd(cmd)
+        # typed commands, the built-in GM menus and cmd: links come through here.  the server does the work.
+        #  errors (UserError) go up to the caller as before.  a result is shown in the chat channel the command was
+        #  typed in (the channel also writes it to the Log window), or as a short notify for menus and links
+        caller, wnd = _SlashCaller()
+        res = sm.RemoteSvc('slash').SlashCmd(cmd)
+        try:
+            if caller == 'chat':
+                # after the channel's own '/slash: <command>' echo, which it writes when this returns
+                uthread.new(self._Echo, wnd, res)
+            elif caller == 'other':
+                NotifyResult(cmd, res)
+        except Exception:
+            log.LogException('EVEmu GM tools: showing a slash result failed')
+        return res
+
+    def _Echo(self, wnd, res):
+        try:
+            EchoResult(wnd, res)
+        except Exception:
+            log.LogException('EVEmu GM tools: echoing a slash result failed')
 
 
 # ------------------------------------------------------------------------------------------------

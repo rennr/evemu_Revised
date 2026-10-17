@@ -530,8 +530,20 @@ PyResult LSCService::SendMessage(PyCallArgs& call, PyRep* channelInfo, PyWString
 
     if (message.at(0) == '.') {
         _log(LSC__INFO, "SlashService->SlashCmd() called via LSC Service");
-        m_slash->SlashCommand(call.client, message);
+        PyResult res(m_slash->SlashCommand(call.client, message));
         itr->second->SendMessage(call.client, message.c_str(), true);
+        // the command's reply, to the caller only, as a system line in this channel.  '/' commands typed in chat
+        //  go through the client's svc.slash instead (utils/config/gmtools.py), which echoes the reply itself
+        std::string reply;
+        if (res.ssResult != nullptr) {
+            if (res.ssResult->IsString())
+                reply = res.ssResult->AsString()->content();
+            else if (res.ssResult->IsWString())
+                reply = res.ssResult->AsWString()->content();
+        }
+        for (size_t pos(reply.find('\n')); pos != std::string::npos; pos = reply.find('\n', pos + 4))
+            reply.replace(pos, 1, "<br>");
+        itr->second->SendSystemMessageTo(call.client, reply);
     } else {
         int64 until(0);
         std::string reason;

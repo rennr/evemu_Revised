@@ -801,16 +801,18 @@ PyResult Command_killallnpcs(Client* pClient, CommandDB* db, EVEServiceManager &
 
     std::map< uint32, SystemEntity* > entityVec;
     pClient->GetShipSE()->SysBubble()->GetEntities(entityVec);
+    uint32 killed(0);
     for (auto cur : entityVec) {
         if (cur.second == nullptr)
             continue;
         if (cur.second->IsNPCSE()) {
             Damage damage(pClient->GetShipSE(),true);
             cur.second->GetNPCSE()->Killed(damage);
+            ++killed;
         }
     }
 
-    return nullptr;
+    return new PyString("Killed " + std::to_string(killed) + " NPCs in your bubble.");
 }
 
 namespace {
@@ -1111,18 +1113,19 @@ PyResult Command_cloak(Client* pClient, CommandDB* db, EVEServiceManager &servic
     if (args.argCount() == 1) {
         if (pClient->IsInSpace()) {
             DestinyManager* pDestiny(pClient->GetShipSE()->DestinyMgr());
-            if (pDestiny->IsModuleCloaked())
+            if (pDestiny->IsModuleCloaked()) {
                 pClient->GetShipSE()->Decloak();
-            else if (pDestiny->IsCloaked())
+                return new PyString("Decloaked (module cloak).");
+            } else if (pDestiny->IsCloaked()) {
                 pDestiny->UnCloak();
-            else
-                pDestiny->Cloak(Destiny::Cloak::GM);
+                return new PyString("Decloaked.");
+            }
+            pDestiny->Cloak(Destiny::Cloak::GM);
+            return new PyString("Cloaked (GM cloak).  /cloak again to decloak.");
         } else
             throw CustomError ("ERROR!  You MUST be in space to cloak!");
     } else
         throw CustomError ("Correct Usage: /cloak");
-
-    return nullptr;
 }
 
 PyResult Command_hop(Client* pClient, CommandDB* db, EVEServiceManager &services, const Seperator& args) {

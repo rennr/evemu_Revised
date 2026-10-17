@@ -699,10 +699,8 @@ PyResult Command_attrlist(Client* pClient, CommandDB* db, EVEServiceManager &ser
     uint32 itemID(atol(args.arg(1).c_str()));
 
     InventoryItemRef iRef(sItemFactory.GetItemRef(itemID));
-    if (iRef.get() == nullptr) {
-        // make error msg here
-        return nullptr;
-    }
+    if (iRef.get() == nullptr)
+        return new PyString("Item " + std::to_string(itemID) + " not found.");
 
     std::map<uint16, EvilNumber> attrMap;
     iRef->GetAttributeMap()->CopyAttributes(attrMap);
@@ -1447,7 +1445,7 @@ PyResult Command_dropLoot(Client* pClient, CommandDB* db, EVEServiceManager &ser
 
     pBubble->CmdDropLoot();
 
-    return nullptr;
+    return new PyString("Loot dropped in bubble " + std::to_string(bubbleID) + ".");
 }
 
 /* groove's new command.....

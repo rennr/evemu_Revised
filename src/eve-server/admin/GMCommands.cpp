@@ -789,8 +789,7 @@ PyResult Command_giveallskills(Client* who, CommandDB* db, EVEServiceManager &se
 
 PyResult Command_giveskills(Client* who, CommandDB* db, EVEServiceManager &services, const Seperator& args) {
     //pass to command_giveskill
-    Command_giveskill(who, db, services, args);
-    return nullptr;
+    return Command_giveskill(who, db, services, args);
 }
 
 PyResult Command_giveskill(Client* who, CommandDB* db, EVEServiceManager &services, const Seperator& args) {
@@ -827,7 +826,8 @@ PyResult Command_giveskill(Client* who, CommandDB* db, EVEServiceManager &servic
     SkillRef skill;
     if (character->HasSkillTrainedToLevel(skillID, level)) {
         // already trained to requested level
-        return PyStatic.NewNone();
+        return new PyString(pTarget->GetCharName() + " already has skill " + std::to_string(skillID) + " at level "
+                            + std::to_string(level) + " or higher.");
     } else if (character->HasSkill(skillID)) {
         // has skill injected, so update level
         skill = character->GetCharSkillRef(skillID);
@@ -867,7 +867,8 @@ PyResult Command_giveskill(Client* who, CommandDB* db, EVEServiceManager &servic
     pTarget->QueueDestinyEvent(&tmp);
 
     _log(SKILL__MESSAGE, "GM::GiveSkill - %s(%u) set to level %u with %u SP.", skill->name(), skillID, level, newPoints);
-    return PyStatic.NewNone();
+    return new PyString(std::string(skill->name()) + " (" + std::to_string(skillID) + ") set to level " + std::to_string(level)
+                        + " (" + std::to_string(newPoints) + " SP) for " + pTarget->GetCharName() + ".");
 }
 
 PyResult Command_online(Client *who, CommandDB *db, EVEServiceManager& services, const Seperator &args) {
@@ -1033,13 +1034,12 @@ PyResult Command_kick(Client* who, CommandDB* db, EVEServiceManager &services, c
         throw CustomError ("Correct Usage: /kick [Character Name]");
     }
 
-    if (target == NULL) {
+    if (target == NULL)
         throw CustomError ("Cannot find Character");
-    } else {
-        target->DisconnectClient();
-    }
 
-    return nullptr;
+    std::string name(target->GetCharName());
+    target->DisconnectClient();
+    return new PyString("Kicked " + name + ".");
 }
 
 PyResult Command_ban(Client* who, CommandDB* db, EVEServiceManager &services, const Seperator& args)
