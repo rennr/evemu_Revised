@@ -315,8 +315,10 @@ PyResult CorpRegistryBound::GetMemberTrackingInfoSimple(PyCallArgs &call)
     return m_db.GetMemberTrackingInfoSimple(m_corpID);
 }
 
-PyResult CorpRegistryBound::GetShareholders(PyCallArgs &call)
-{   // working
+PyResult CorpRegistryBound::GetShareholders(PyCallArgs &call, PyInt* corporationID)
+{
+    /* bco_shares:  GetCorpRegistry().GetShareholders(eve.session.corpid).  with no argument in the signature the call
+     *  matched no handler and the wallet's shareholders tab got None.  the list is this registry's corp's */
     return m_db.GetShares(m_corpID);
 }
 

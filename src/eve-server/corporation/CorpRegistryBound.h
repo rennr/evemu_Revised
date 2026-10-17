@@ -66,7 +66,7 @@ protected:
     PyResult MoveCompanyShares(PyCallArgs& call, PyInt* corporationID, PyInt* toShareholderID, PyInt* numberOfShares);
     PyResult MovePrivateShares(PyCallArgs& call, PyInt* corporationID, PyInt* toShareholderID, PyInt* numberOfShares);
     PyResult GetSharesByShareholder(PyCallArgs& call, PyBool* corpShares);
-    PyResult GetShareholders(PyCallArgs& call);
+    PyResult GetShareholders(PyCallArgs& call, PyInt* corporationID);
     PyResult PayoutDividend(PyCallArgs& call, PyRep* payShareholders, PyRep* payoutAmount);
 
     PyResult CanViewVotes(PyCallArgs& call, PyInt* corporationID);
