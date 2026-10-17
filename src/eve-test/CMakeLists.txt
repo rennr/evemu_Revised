@@ -43,6 +43,7 @@ SET( utils_SOURCE
      "utils/EvilNumberTest.cpp"
      "utils/CustomsRulesTest.cpp"
      "utils/LogoffRulesTest.cpp"
+     "utils/MedalRulesTest.cpp"
      "utils/MotdTest.cpp"
      "utils/OutpostRulesTest.cpp"
      "utils/SkillMathTest.cpp"
@@ -109,6 +110,8 @@ ADD_TEST( NAME "CustomsRulesTest"
           COMMAND "${TARGET_NAME}" "utils/CustomsRulesTest" )
 ADD_TEST( NAME "LogoffRulesTest"
           COMMAND "${TARGET_NAME}" "utils/LogoffRulesTest" )
+ADD_TEST( NAME "MedalRulesTest"
+          COMMAND "${TARGET_NAME}" "utils/MedalRulesTest" )
 ADD_TEST( NAME "MotdTest"
           COMMAND "${TARGET_NAME}" "utils/MotdTest" )
 ADD_TEST( NAME "OutpostRulesTest"
