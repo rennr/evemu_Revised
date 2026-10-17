@@ -263,7 +263,11 @@ PyRep* ConfigDB::GetMultiStationEx(const std::vector< int32 >& entityIDs)
     std::string ids;
     ListToINString(entityIDs, ids);
     DBQueryResult res;
-    if (!sDatabase.RunQuery(res, "SELECT stationID, stationName, stationTypeID, solarSystemID, x, y, z FROM staStations WHERE stationID in (%s)", ids.c_str())) {
+    /* the client's Recordset._Prime replaces cfg.stations' header with the one sent here, and the npc stations it already
+     *  holds from bulkdata 2209987 keep their own column order:  this must be that header exactly
+     *  (stationID, stationName, x, y, z, stationTypeID, solarSystemID).  in another order, priming one outpost made every
+     *  npc station's stationTypeID read its x (a menu on Jita 4-4 in the assets window raised KeyError for type -107303362560) */
+    if (!sDatabase.RunQuery(res, "SELECT stationID, stationName, x, y, z, stationTypeID, solarSystemID FROM staStations WHERE stationID in (%s)", ids.c_str())) {
         codelog(DATABASE__ERROR, "Error in GetMultiStationEx query: %s", res.error.c_str());
     }
 
