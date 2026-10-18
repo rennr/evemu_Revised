@@ -121,8 +121,9 @@ ADD_TEST( NAME "MarketSimChainsTest"
 ADD_TEST( NAME "MarketSimAcceptance"
           COMMAND "${TARGET_NAME}" --synthetic --days 365 --seeds 5 )
 SET_TESTS_PROPERTIES( "MarketSimAcceptance" PROPERTIES TIMEOUT 3600 )
-# the phase 3 acceptance tests:  a mineral shock and a Drake losses shock against a control run, no negatives, T1 price /
-#  bill of materials at steady state (Phase3Test.cpp)
+# the phase 3 acceptance tests:  a Drake losses shock against a control run, no negatives, T1 price / bill against the
+#  calibration at steady state;  the mineral shock is set aside (2026-10-17;  --mineral-shock-at runs it again)
+#  (Phase3Test.cpp)
 ADD_TEST( NAME "MarketSimPhase3"
           COMMAND "${TARGET_NAME}" --synthetic --phase3 --days 120 --seeds 3 )
 SET_TESTS_PROPERTIES( "MarketSimPhase3" PROPERTIES TIMEOUT 3600 )
@@ -131,8 +132,9 @@ SET_TESTS_PROPERTIES( "MarketSimPhase3" PROPERTIES TIMEOUT 3600 )
 ADD_TEST( NAME "MarketSimPhase4"
           COMMAND "${TARGET_NAME}" --synthetic --phase4 --days 120 --seeds 2 )
 SET_TESTS_PROPERTIES( "MarketSimPhase4" PROPERTIES TIMEOUT 3600 )
-# the phase 6 acceptance tests:  a moon material's supply removed against a control run, T2 price / bill at steady state,
-#  invention successes against the configured chance, every chain running, the books (Phase6Test.cpp)
+# the phase 6 acceptance tests:  a moon material's supply removed against a control run, T2 price / bill against the
+#  calibration at steady state, invention successes against the configured chance, every chain running, no chain good
+#  hauled out of a stand-in, the books (Phase6Test.cpp)
 ADD_TEST( NAME "MarketSimPhase6"
           COMMAND "${TARGET_NAME}" --synthetic --phase6 --days 100 --seeds 3 )
 SET_TESTS_PROPERTIES( "MarketSimPhase6" PROPERTIES TIMEOUT 3600 )

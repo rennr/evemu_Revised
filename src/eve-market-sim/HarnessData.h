@@ -40,6 +40,8 @@ namespace MktHarness {
     // the --export-json snapshot (types, bills of materials, refine outputs, the mktCal* rows).  false and a message
     //  when the file can't be read
     bool LoadExport(const std::string& path, MktSim::StaticData& data, std::string& err);
+    // a type's name from the last export loaded (the reports;  empty:  synthetic, or not in it)
+    const std::string& TypeName(uint16_t typeID);
 
 }
 

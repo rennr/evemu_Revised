@@ -64,6 +64,8 @@ namespace {
         bool        phase6      = false;        // --phase6:  the phase 6 acceptance tests (Phase6Test.cpp) instead
         bool        actors      = false;        // print the phase 3 actors at the start and the end
         bool        phase3      = false;        // the phase 3 acceptance tests (Phase3Test.cpp) instead
+        bool        mineralShockAT = false;     // --mineral-shock-at:  run the phase 3 mineral shock and its checks (set aside 2026-10-17)
+        bool        calRatios   = false;        // --cal-ratios:  print the calibration's price / bill figures the ATs judge by, and exit
         bool        stationLines = true;        // jobs on the hubs' station lines (phase 5);  false:  the world's virtual lines
         bool        phase4      = false;        // the phase 4 acceptance tests (Phase4Test.cpp) instead
         bool        regional    = false;        // the export's regional nodes too (PLAN 6.1 'auto')
@@ -74,6 +76,7 @@ namespace {
         float       halfSpreadScale = 1.0f;     // StaticData's tuning multipliers (scenario keys HalfSpreadScale,
         float       stockElasticityScale = 1.0f;    //  StockElasticityScale, ElasticityScale)
         float       elasticityScale = 1.0f;
+        float       regionRatioMinActive = 0.2f;    // RegionRatioMinActive (StaticData's;  0:  the raw ratios)
     };
 
     struct ShockSpec {
@@ -134,6 +137,8 @@ namespace {
             {"HaulerFleet", [&](double v) { p.haulerFleet = (int)v; }},
             {"HaulerMaxTripValue", [&](double v) { p.haulerMaxTripValue = v; }},
             {"HaulerMargin", [&](double v) { p.haulerMargin = v; }},
+            {"HaulChainFallbacks", [&](double v) { p.haulChainFallbacks = (v != 0.0); }},
+            {"RegionRatioMinActive", [&](double v) { o.regionRatioMinActive = (float)std::max(0.0, v); }},
             {"RemoteSupplyElasticity", [&](double v) { p.remoteSupplyElasticity = v; }},
             {"HaulerCargoFactor", [&](double v) { p.haulerCargoFactor = v; }},
             // phase 7:  the rest of the tuning keys (doc/code_and_design_notes/planning/market-sim/TUNING.md)
@@ -851,15 +856,23 @@ namespace {
                     "                      [--virtual-lines] [--no-logistics] [--no-repeat] [--export cells.csv] [--history-csv file]\n"
                     "                      [--phase6] [--trace typeID [--trace-node N]] [--pull-apart sigma]\n"
                     "                      [--line-need] [--node-stations N[,R]] [--node-max-jumps J]\n"
+                    "                      [--mineral-shock-at] [--cal-ratios]\n"
                     "       eve-market-sim --test <name>\n");
     }
 }
 
-int Phase3Main(const StaticData& data, const Params& p, const std::vector<uint64_t>& seeds, int days, bool stationLines);
+int Phase3Main(const StaticData& data, const Params& p, const std::vector<uint64_t>& seeds, int days, bool stationLines, bool mineralShockAT);
 int Phase4Main(const StaticData& data, const Params& p, const std::vector<uint64_t>& seeds, int days);
+const std::map<std::string, double>& Phase3Plan41();
+std::map<std::string, std::vector<double>> Phase3CalRatios(const StaticData& data);
 
 // phase 6 (Phase6Test.cpp)
 int Phase6Main(const StaticData& data, const Params& p, const std::vector<uint64_t>& seeds, int days);
+const std::map<std::string, double>& Phase6Plan41();
+std::map<std::string, std::vector<double>> Phase6CalRatios(const StaticData& data);
+std::map<std::string, std::vector<uint32_t>> Phase6RatioCells(const StaticData& data, const World& layout, uint32_t hub);
+std::map<std::string, std::vector<double>> Phase6CalCells(const StaticData& data, World& layout, uint32_t hub,
+                                                          const std::map<std::string, std::vector<uint32_t>>& ratioCells);
 int HarnessMain(int argc, char** argv)
 {
     Options opt;
@@ -900,6 +913,10 @@ int HarnessMain(int argc, char** argv)
             opt.phase6 = true;
         else if (a == "--phase3")
             opt.phase3 = true;
+        else if (a == "--mineral-shock-at")
+            opt.mineralShockAT = true;
+        else if (a == "--cal-ratios")
+            opt.calRatios = true;
         else if (a == "--virtual-lines")
             opt.stationLines = false;
         else if (a == "--phase4")
@@ -956,6 +973,10 @@ int HarnessMain(int argc, char** argv)
     } else {
         BuildSynthetic(data, 20111129, opt.scale);
     }
+    // (before PullApart, which builds on the ratios)
+    data.regionRatioMinActive = opt.regionRatioMinActive;
+    if (opt.regionRatioMinActive != 0.2f)
+        std::printf("tuning:  RegionRatioMinActive %g (0:  the raw region price ratios)\n", opt.regionRatioMinActive);
     if (opt.pullApart > 0.0)
         PullApart(data, opt.pullApart);
     data.halfSpreadScale = opt.halfSpreadScale;
@@ -970,6 +991,33 @@ int HarnessMain(int argc, char** argv)
         std::printf("static data:  %s\n", s.c_str());
     std::printf("market sim harness:  %zu types, %zu nodes, %zu vendor offers, %d days, %zu seed(s), EconomyScale %g\n",
                 data.types.size(), data.nodes.size(), data.vendors.size(), opt.days, opt.seeds.size(), p.economyScale);
+
+    /* --cal-ratios:  the calibration's price / bill medians the ATs judge by (T1:  over every minerals-only type;  T2 and
+     *  components:  over the first hub's cells the sim makes, and over every such type), beside PLAN 4.1's.  the world is
+     *  built only (no day is simulated) */
+    if (opt.calRatios) {
+        std::map<std::string, std::vector<double>> t1(Phase3CalRatios(data));
+        for (auto& cur : Phase3Plan41())
+            std::printf("[cal] T1 %s %.3f (%zu types);  PLAN 4.1 %.2f\n", cur.first.c_str(), Median(t1[cur.first]), t1[cur.first].size(),
+                        cur.second);
+        p.seed = opt.seeds[0];
+        HarnessMarket market(data, p.salesTaxRate);
+        World layout(data, p, market);
+        market.SetWorld(&layout);
+        layout.Build(StartTime);
+        uint32_t hub(data.nodes[0].nodeID);
+        std::map<std::string, std::vector<uint32_t>> cells(Phase6RatioCells(data, layout, hub));
+        std::map<std::string, std::vector<double>> same(Phase6CalCells(data, layout, hub, cells)), all(Phase6CalRatios(data));
+        for (auto& cur : Phase6Plan41()) {
+            if (same[cur.first].empty())
+                std::printf("[cal] T2 %s:  none made at the first hub;  all %zu types %.3f;  PLAN 4.1 %.2f\n", cur.first.c_str(),
+                            all[cur.first].size(), Median(all[cur.first]), cur.second);
+            else
+                std::printf("[cal] T2 %s %.3f over %zu cells at the first hub;  all %zu types %.3f;  PLAN 4.1 %.2f\n", cur.first.c_str(),
+                            Median(same[cur.first]), same[cur.first].size(), all[cur.first].size(), Median(all[cur.first]), cur.second);
+        }
+        return 0;
+    }
 
     // --line-need:  each node's line need, wanted lines, stations and shortfall at the build;  no day is simulated
     if (lineNeed) {
@@ -993,7 +1041,7 @@ int HarnessMain(int argc, char** argv)
     if (opt.phase6)
         return Phase6Main(data, p, opt.seeds, opt.days);
     if (opt.phase3)
-        return Phase3Main(data, p, opt.seeds, opt.days, opt.stationLines);
+        return Phase3Main(data, p, opt.seeds, opt.days, opt.stationLines, opt.mineralShockAT);
     if (opt.phase4)
         return Phase4Main(data, p, opt.seeds, opt.days);
     std::printf("logistics %s:  %zu systems, %zu jumps, %zu site stations\n", p.logistics ? "on" : "off", data.systems.size(),

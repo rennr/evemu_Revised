@@ -1,10 +1,11 @@
 
  /**
   * @name Phase3Test.cpp
-  *   the phase 3 acceptance tests (PLAN 11, phase 3), on the harness:  the same world and seed run three times, without
-  *   a shock (the control) and with each shock, so a shock's effect is the shocked run against the control, day by day,
-  *   free of the noise both share (the random numbers are counters of cell, time and purpose)
-  *     mineral shock   the miners' fleets bring in half for 7 days:  the minerals rise about 20-60% (x1.15..x1.65:  the
+  *   the phase 3 acceptance tests (PLAN 11, phase 3), on the harness:  the same world and seed run without a shock (the
+  *   control) and with each shock, so a shock's effect is the shocked run against the control, day by day, free of the
+  *   noise both share (the random numbers are counters of cell, time and purpose)
+  *     mineral shock   (set aside by the owner 2026-10-17:  not run unless --mineral-shock-at)
+  *                     the miners' fleets bring in half for 7 days:  the minerals rise about 20-60% (x1.15..x1.65:  the
   *                     most raised one's peak, at any node:  where a fleet ran short the scarcest
   *                     mineral takes the shortfall;  Tritanium at the first hub, in nearly every ore, rises, often the
   *                     most),
@@ -18,9 +19,9 @@
   *     no negatives    no actor's money or stock goes negative, every day of every run
   *     T1 price / BOM  at steady state (the control, day 60 to the end) the median of V / (bill of materials at the
   *                     minerals' V) per category at the first hub, over the T1 built of minerals only (PLAN 4.1's set),
-  *                     is within 10% of PLAN 4.1:  modules 0.97, charges
-  *                     1.18, ships 1.24, drones 1.15.  the calibration's own medians (refPrice / its bill at refPrice)
-  *                     are printed alongside
+  *                     is within 10% of the calibration's own median (refPrice / its bill at refPrice, over every such
+  *                     type);  PLAN 4.1's figures (modules 0.97, charges 1.18, ships 1.24, drones 1.15) are printed
+  *                     alongside, not a target (owner 2026-10-17)
   *
   * @date:          15Oct26
   *
@@ -54,6 +55,7 @@ namespace {
     const int LossShockDays = 14;
     const int RecoveryDays = 30;
     const int SteadyFrom = 60;
+    const double T1Tolerance = 0.10;
 
     struct Daily {
         std::vector<double> trit;           // V of Tritanium at the first hub
@@ -264,17 +266,16 @@ namespace {
     }
 }
 
-int Phase3Main(const StaticData& data, const Params& p, const std::vector<uint64_t>& seeds, int days, bool stationLines)
+// PLAN 4.1's price / mineral cost medians of T1 (the analysis's measurement:  printed, not a target since 2026-10-17)
+const std::map<std::string, double>& Phase3Plan41()
 {
-    int failures(0);
-    if (days < ShockDay + LossShockDays + RecoveryDays + 5)
-        days = ShockDay + LossShockDays + RecoveryDays + 5;
-    std::printf("market sim phase 3 acceptance tests:  %d days, shocks on day %d, %zu seed(s), %s\n", days, ShockDay, seeds.size(),
-                stationLines ? "jobs on the hubs' station lines" : "virtual lines");
+    static const std::map<std::string, double> plan41 = { {"modules", 0.97}, {"charges", 1.18}, {"ships", 1.24}, {"drones", 1.15} };
+    return plan41;
+}
 
-    // PLAN 4.1:  price / mineral cost medians of T1
-    std::map<std::string, double> plan41 = { {"modules", 0.97}, {"charges", 1.18}, {"ships", 1.24}, {"drones", 1.15} };
-    // the calibration's own medians:  refPrice / its bill at refPrice (first hub)
+// the calibration's own price / bill (the target):  refPrice / its bill at refPrice, over every minerals-only T1 type
+std::map<std::string, std::vector<double>> Phase3CalRatios(const StaticData& data)
+{
     std::map<std::string, std::vector<double>> calRatios;
     for (auto& cur : data.types) {
         const TypeData& t(cur.second);
@@ -289,57 +290,83 @@ int Phase3Main(const StaticData& data, const Params& p, const std::vector<uint64
         if (bill > 0.0)
             calRatios[cat].push_back(t.refPrice / bill);
     }
+    return calRatios;
+}
+
+int Phase3Main(const StaticData& data, const Params& p, const std::vector<uint64_t>& seeds, int days, bool stationLines, bool mineralShockAT)
+{
+    int failures(0);
+    if (days < ShockDay + LossShockDays + RecoveryDays + 5)
+        days = ShockDay + LossShockDays + RecoveryDays + 5;
+    std::printf("market sim phase 3 acceptance tests:  %d days, shocks on day %d, %zu seed(s), %s%s\n", days, ShockDay, seeds.size(),
+                stationLines ? "jobs on the hubs' station lines" : "virtual lines",
+                mineralShockAT ? "" : ", the mineral shock set aside (--mineral-shock-at runs it)");
+
+    // PLAN 4.1's medians (printed only) and the calibration's own (the target)
+    const std::map<std::string, double>& plan41(Phase3Plan41());
+    std::map<std::string, std::vector<double>> calRatios(Phase3CalRatios(data));
 
     for (auto seed : seeds) {
         Daily control(RunOne(data, p, seed, days, stationLines, [](World&, int, int64_t) { }));
-        Daily mining(RunOne(data, p, seed, days, stationLines, [](World& w, int day, int64_t t) {
-            if (day == ShockDay)
-                w.ShockMining(0.5, MiningShockDays, t);
-        }));
+        // the mineral shock is set aside (owner 2026-10-17):  run only with --mineral-shock-at
+        Daily mining;
+        if (mineralShockAT)
+            mining = RunOne(data, p, seed, days, stationLines, [](World& w, int day, int64_t t) {
+                if (day == ShockDay)
+                    w.ShockMining(0.5, MiningShockDays, t);
+            });
         Daily losses(RunOne(data, p, seed, days, stationLines, [](World& w, int day, int64_t t) {
             if (day == ShockDay)
                 w.ShockLosses(Drake, 2.0, LossShockDays, t);
         }));
-        std::printf("\nseed %llu:  %.0fs + %.0fs + %.0fs\n", (unsigned long long)seed, control.seconds, mining.seconds, losses.seconds);
+        if (mineralShockAT)
+            std::printf("\nseed %llu:  %.0fs + %.0fs + %.0fs\n", (unsigned long long)seed, control.seconds, mining.seconds, losses.seconds);
+        else
+            std::printf("\nseed %llu:  %.0fs + %.0fs\n", (unsigned long long)seed, control.seconds, losses.seconds);
 
-        /* the mineral shock.  Tritanium is in nearly every ore:  when the fleets can't mine the node's needs, they keep the
-         *  bulk mineral coming and the shortfall goes to the scarcest one, which may be another;  the minerals' peak is
-         *  the most raised of them (Tritanium is reported) */
-        int s(ShockDay), end(ShockDay + MiningShockDays), tritAt(s), minAt(s);
-        double tritPeak(MaxRel(mining.trit, control.trit, s, end + 14, &tritAt));
-        double minPeak(0.0);
-        uint32_t minType(0);
-        for (auto& cur : control.minerals) {
-            int at(s);
-            double peak(MaxRel(mining.minerals[cur.first], cur.second, s, end + 14, &at));
-            if (peak > minPeak) {
-                minPeak = peak;
-                minType = cur.first;
-                minAt = at;
+        int s(ShockDay);
+        if (!mineralShockAT) {
+            std::printf("  [skip] mineral shock:  set aside (owner 2026-10-17);  --mineral-shock-at runs it\n");
+        } else {
+            /* the mineral shock.  Tritanium is in nearly every ore:  when the fleets can't mine the node's needs, they keep the
+             *  bulk mineral coming and the shortfall goes to the scarcest one, which may be another;  the minerals' peak is
+             *  the most raised of them (Tritanium is reported) */
+            int end(ShockDay + MiningShockDays), tritAt(s), minAt(s);
+            double tritPeak(MaxRel(mining.trit, control.trit, s, end + 14, &tritAt));
+            double minPeak(0.0);
+            uint32_t minType(0);
+            for (auto& cur : control.minerals) {
+                int at(s);
+                double peak(MaxRel(mining.minerals[cur.first], cur.second, s, end + 14, &at));
+                if (peak > minPeak) {
+                    minPeak = peak;
+                    minType = cur.first;
+                    minAt = at;
+                }
             }
+            Check((minPeak >= 1.15) and (minPeak <= 1.65) and (tritPeak > 1.0),
+                  F("mineral shock:  the minerals peak at x%.3f of the control (type %u at node %u, day %+d of the shock), Tritanium at the"
+                    " first hub at x%.3f (day %+d) (allowed about x1.2..x1.6:  x1.15..x1.65, Tritanium up)", minPeak, minType & 0xFFFF, minType >> 16, minAt - s,
+                    tritPeak, tritAt - s), failures);
+            int shipAt(s), costAt(s);
+            double shipPeak(MaxRel(mining.ships, control.ships, s, end + 21, &shipAt));
+            double costPeak(MaxRel(mining.shipCost, control.shipCost, s, end + 21, &costAt));
+            int lag(-1);
+            for (int d = s; d <= end + 21; ++d)
+                if (Rel(mining.ships, control.ships, d) - 1.0 >= 0.5 * (shipPeak - 1.0)) {
+                    lag = d - s;
+                    break;
+                }
+            Check((shipPeak - 1.0 >= 0.3 * 0.9 * (costPeak - 1.0)) and (costPeak > 1.0) and (lag >= 0) and (lag <= 10),
+                  F("mineral shock:  the T1 ships follow their cost:  cost x%.3f (day %+d), ships x%.3f (day %+d), half way on day %+d"
+                    " (allowed:  at least 30%% of 0.9 x the cost rise, half way within 10 days)", costPeak, costAt - s, shipPeak, shipAt - s, lag),
+                  failures);
+            double tritBack(MeanRel(mining.trit, control.trit, end + RecoveryDays - 3, end + RecoveryDays + 3));
+            double shipsBack(MeanRel(mining.ships, control.ships, end + RecoveryDays - 3, end + RecoveryDays + 3));
+            Check((std::fabs(tritBack - 1.0) <= 0.10) and (std::fabs(shipsBack - 1.0) <= 0.05),
+                  F("mineral shock:  %d days after it, Tritanium x%.3f and the ships x%.3f of the control (allowed 10%%, 5%%)",
+                    RecoveryDays, tritBack, shipsBack), failures);
         }
-        Check((minPeak >= 1.15) and (minPeak <= 1.65) and (tritPeak > 1.0),
-              F("mineral shock:  the minerals peak at x%.3f of the control (type %u at node %u, day %+d of the shock), Tritanium at the"
-                " first hub at x%.3f (day %+d) (allowed about x1.2..x1.6:  x1.15..x1.65, Tritanium up)", minPeak, minType & 0xFFFF, minType >> 16, minAt - s,
-                tritPeak, tritAt - s), failures);
-        int shipAt(s), costAt(s);
-        double shipPeak(MaxRel(mining.ships, control.ships, s, end + 21, &shipAt));
-        double costPeak(MaxRel(mining.shipCost, control.shipCost, s, end + 21, &costAt));
-        int lag(-1);
-        for (int d = s; d <= end + 21; ++d)
-            if (Rel(mining.ships, control.ships, d) - 1.0 >= 0.5 * (shipPeak - 1.0)) {
-                lag = d - s;
-                break;
-            }
-        Check((shipPeak - 1.0 >= 0.3 * 0.9 * (costPeak - 1.0)) and (costPeak > 1.0) and (lag >= 0) and (lag <= 10),
-              F("mineral shock:  the T1 ships follow their cost:  cost x%.3f (day %+d), ships x%.3f (day %+d), half way on day %+d"
-                " (allowed:  at least 30%% of 0.9 x the cost rise, half way within 10 days)", costPeak, costAt - s, shipPeak, shipAt - s, lag),
-              failures);
-        double tritBack(MeanRel(mining.trit, control.trit, end + RecoveryDays - 3, end + RecoveryDays + 3));
-        double shipsBack(MeanRel(mining.ships, control.ships, end + RecoveryDays - 3, end + RecoveryDays + 3));
-        Check((std::fabs(tritBack - 1.0) <= 0.10) and (std::fabs(shipsBack - 1.0) <= 0.05),
-              F("mineral shock:  %d days after it, Tritanium x%.3f and the ships x%.3f of the control (allowed 10%%, 5%%)",
-                RecoveryDays, tritBack, shipsBack), failures);
 
         // the Drake shock
         if (data.Type(Drake) != nullptr) {
@@ -383,9 +410,13 @@ int Phase3Main(const StaticData& data, const Params& p, const std::vector<uint64
             }
             std::vector<double> tail(r->second.begin() + SteadyFrom, r->second.end());
             double sim(Median(tail)), cal(Median(calRatios[cur.first]));
-            Check(std::fabs(sim / cur.second - 1.0) <= 0.10,
-                  F("T1 %s:  median price / bill %.3f at steady state;  PLAN 4.1 %.2f (x%.3f, allowed 10%%);  the calibration's %.3f",
-                    cur.first.c_str(), sim, cur.second, sim / cur.second, cal), failures);
+            if (!(cal > 0.0)) {
+                std::printf("  [skip] T1 %s:  the calibration has none\n", cur.first.c_str());
+                continue;
+            }
+            Check(std::fabs(sim / cal - 1.0) <= T1Tolerance,
+                  F("T1 %s:  median price / bill %.3f at steady state;  the calibration's %.3f (x%.3f, allowed 10%%);  PLAN 4.1 %.2f (x%.3f, not a target)",
+                    cur.first.c_str(), sim, cal, sim / cal, cur.second, sim / cur.second), failures);
         }
     }
     std::printf("\n%s (%d failure%s)\n", failures ? "PHASE 3 ACCEPTANCE TESTS FAILED" : "all phase 3 acceptance tests passed", failures,

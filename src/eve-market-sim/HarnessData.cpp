@@ -836,6 +836,17 @@ void AddSyntheticIndustry(StaticData& data, uint64_t seed)
     }
 }
 
+namespace {
+    std::map<uint16_t, std::string> s_typeNames;
+}
+
+const std::string& TypeName(uint16_t typeID)
+{
+    static const std::string none;
+    std::map<uint16_t, std::string>::const_iterator itr = s_typeNames.find(typeID);
+    return (itr == s_typeNames.end()) ? none : itr->second;
+}
+
 bool LoadExport(const std::string& path, StaticData& data, std::string& err)
 {
     std::ifstream f(path.c_str(), std::ios::in | std::ios::binary);
@@ -873,6 +884,8 @@ bool LoadExport(const std::string& path, StaticData& data, std::string& err)
         t.basePrice = j["basePrice"].Num();
         t.metaGroupID = (uint8_t)j["metaGroupID"].Num();
         data.types[t.typeID] = t;
+        if (!j["name"].s.empty())
+            s_typeNames[t.typeID] = j["name"].s;
     }
     // the mktCal* tables:  {columns: [...], rows: [[...]]}
     auto table = [&doc](const char* name, std::map<std::string, size_t>& cols) -> const Json& {

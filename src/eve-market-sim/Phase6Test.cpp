@@ -6,11 +6,17 @@
   *   control, day by day, free of the noise both share
   *     moon removal    the harvesters bring in none of one raw moon material (the one the most component value is made
   *                     of) for 21 days:  what is made of it rises, the reactions' products, the components and the T2
-  *                     made of them (each group's V, weighted by its calibrated isk, against the control's)
+  *                     made of them (each group's V, weighted by its calibrated isk, against the control's).  the same
+  *                     peaks over every hub are printed alongside
   *     T2 price / BOM  at steady state (the control, day 60 to the end) the median of V / (bill at its inputs' V, materials at
-  *                     perfect material level:  PLAN 4.1's bill) per category at the first hub is within 20% of PLAN 4.1:
-  *                     T2 modules 2.73, charges 2.26, drones 2.06, ships 1.44, components 1.28.  the calibration's own medians
-  *                     (refPrice over the bill at refPrice) are printed alongside
+  *                     perfect material level:  PLAN 4.1's bill) per category at the first hub is within 20% of the
+  *                     calibration over the same cells (refLocal over PLAN 4.1's bill at refLocal, the first hub's T2 /
+  *                     component cells the sim makes);  the calibration's median over every such type and PLAN 4.1's
+  *                     figures (T2 modules 2.73, charges 2.26, drones 2.06, ships 1.44, components 1.28) are printed
+  *                     alongside, not a target (owner 2026-10-17)
+  *     stand-ins       with logistics (and HaulChainFallbacks off):  no chain good was hauled out of a stock-model
+  *                     stand-in (World::ChainStandIn:  its producer ignores the removal);  the stand-ins and what other
+  *                     classes' stand-ins exported are printed
   *     invention       the successes of every attempt (all nodes, the control) are within 2 sigma of the configured chance
   *                     (the sum of the chances the attempts were made at)
   *     the chains run  every chain made something:  moon materials harvested, reactions, planetary goods, components, T2
@@ -47,9 +53,11 @@ namespace {
     const int ShockDay = 40;
     const int MoonDays = 21;
     const int SteadyFrom = 60;
+    const double T2Tolerance = 0.20;
 
     struct Run6 {
-        std::map<uint32_t, std::vector<double>> v;      // cell index -> V each day (the first hub)
+        std::map<uint32_t, std::vector<double>> v;      // cell index -> V each day (every hub)
+        std::map<uint16_t, Units> standIn;              // units hub traders bought from stand-ins per type (World::StandInExports)
         std::map<uint8_t, Units> made;                  // by supply kind:  units made over the run (all nodes)
         Units harvested = 0, extracted = 0, invented = 0, fuel = 0;
         World::InventionStats inventions;
@@ -136,7 +144,10 @@ namespace {
         world.Seed(StartTime);
         world.Start(StartTime, false);
         market.SetNow(StartTime);
-        uint32_t hub(data.nodes[0].nodeID);
+        std::set<uint32_t> hubs;
+        for (auto& n : data.nodes)
+            if (n.kind == NodeKind::Hub)
+                hubs.insert(n.nodeID);
         for (int day = 0; day < days; ++day) {
             for (int tick = 0; tick < 96; ++tick) {
                 int64_t t(StartTime + (int64_t)day * SecondsPerDay + tick * 900);
@@ -151,7 +162,7 @@ namespace {
                 }
             }
             for (auto& c : world.Cells())
-                if (c.nodeID == hub)
+                if (hubs.count(c.nodeID) > 0)
                     out.v[c.index].push_back(std::exp(c.lnV));
             for (auto& cur : world.GetLedger().Accounts())
                 if ((cur.second.wallet < 0) or (cur.second.reserved < 0))
@@ -173,6 +184,7 @@ namespace {
                 out.made[c.supply] += m->second;
         }
         out.inventions = world.Inventions();
+        out.standIn = world.StandInExports();
         out.seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
         return out;
     }
@@ -205,16 +217,16 @@ namespace {
     }
 }
 
-int Phase6Main(const StaticData& data, const Params& p, const std::vector<uint64_t>& seeds, int days)
+// PLAN 4.1's T2 and component price / bill medians (the analysis's measurement:  printed, not a target since 2026-10-17)
+const std::map<std::string, double>& Phase6Plan41()
 {
-    int failures(0);
-    if (days < ShockDay + MoonDays + 20)
-        days = ShockDay + MoonDays + 20;
-    std::printf("market sim phase 6 acceptance tests:  %d days, a moon material removed on day %d for %d days, %zu seed(s)\n", days,
-                ShockDay, MoonDays, seeds.size());
-    std::map<std::string, double> plan41 = { {"modules", 2.73}, {"charges", 2.26}, {"drones", 2.06}, {"ships", 1.44}, {"components", 1.28} };
+    static const std::map<std::string, double> plan41 = { {"modules", 2.73}, {"charges", 2.26}, {"drones", 2.06}, {"ships", 1.44}, {"components", 1.28} };
+    return plan41;
+}
 
-    // the calibration's own medians:  refPrice over PLAN 4.1's bill at refPrice
+// the calibration over every such type:  refPrice over PLAN 4.1's bill at max(refPrice, basePrice) (printed only)
+std::map<std::string, std::vector<double>> Phase6CalRatios(const StaticData& data)
+{
     std::map<std::string, std::vector<double>> calRatios;
     for (auto& cur : data.types) {
         const char* cat(RatioCategory(cur.second));
@@ -229,6 +241,67 @@ int Phase6Main(const StaticData& data, const Params& p, const std::vector<uint64
         if (cost > 0.0)
             calRatios[cat].push_back(cur.second.refPrice / cost);
     }
+    return calRatios;
+}
+
+// the cells the AT measures:  the hub's T2 and components the sim makes (invented or manufactured), with a PLAN 4.1 bill
+std::map<std::string, std::vector<uint32_t>> Phase6RatioCells(const StaticData& data, const World& layout, uint32_t hub)
+{
+    std::map<std::string, std::vector<uint32_t>> ratioCells;
+    for (auto& c : layout.Cells()) {
+        if (c.nodeID != hub)
+            continue;
+        const char* cat(RatioCategory(*data.Type(c.typeID)));
+        if ((cat != nullptr) and (data.bills.count(c.typeID) > 0) and ((c.supply == Supply::Invented) or (c.supply == Supply::Manufactured)))
+            ratioCells[cat].push_back(c.index);
+    }
+    return ratioCells;
+}
+
+/* the calibration over the same cells (the target, owner 2026-10-17):  each cell's refLocal over PLAN 4.1's bill at its
+ *  inputs' refLocal at the hub (as the sim's side prices them at their V, which is anchored there);  an input without a
+ *  cell at max(refPrice, basePrice), as the sim's side.  (not max(refPrice, basePrice) for every input:  Crucible's
+ *  basePrice is far above the market for some, Morphite x8.7) */
+std::map<std::string, std::vector<double>> Phase6CalCells(const StaticData& data, World& layout, uint32_t hub,
+                                                          const std::map<std::string, std::vector<uint32_t>>& ratioCells)
+{
+    std::map<std::string, std::vector<double>> calCells;
+    for (auto& rc : ratioCells)
+        for (auto idx : rc.second) {
+            const Cell& c(layout.Cells()[idx]);
+            std::vector<std::pair<uint16_t, double>> bill;
+            if (!PlanBill(data, c.typeID, bill))
+                continue;
+            double cost(0.0);
+            bool ok(true);
+            for (auto& in : bill) {
+                Cell* ic(layout.FindCell(hub, in.first));
+                if ((ic != nullptr) and (ic->refLocal > 0.0)) {
+                    cost += in.second * ic->refLocal;
+                } else {
+                    const TypeData* it(data.Type(in.first));
+                    if ((it == nullptr) or !(std::max(it->refPrice, it->basePrice) > 0.0))
+                        ok = false;
+                    else
+                        cost += in.second * std::max(it->refPrice, it->basePrice);
+                }
+            }
+            if (ok and (cost > 0.0))
+                calCells[rc.first].push_back(c.refLocal / cost);
+        }
+    return calCells;
+}
+
+int Phase6Main(const StaticData& data, const Params& p, const std::vector<uint64_t>& seeds, int days)
+{
+    int failures(0);
+    if (days < ShockDay + MoonDays + 20)
+        days = ShockDay + MoonDays + 20;
+    std::printf("market sim phase 6 acceptance tests:  %d days, a moon material removed on day %d for %d days, %zu seed(s)\n", days,
+                ShockDay, MoonDays, seeds.size());
+    // PLAN 4.1's figures and the calibration's median over every such type:  printed only
+    const std::map<std::string, double>& plan41(Phase6Plan41());
+    std::map<std::string, std::vector<double>> calRatios(Phase6CalRatios(data));
 
     /* the moon material to remove:  the raw one the most component value is made of (through the reactions), and what
      *  depends on it (the products of reactions that use it, again and again, the components of them, the T2 of those) */
@@ -307,38 +380,55 @@ int Phase6Main(const StaticData& data, const Params& p, const std::vector<uint64
         World layout(data, pp, market);
         layout.Build(StartTime);
         uint32_t hub(data.nodes[0].nodeID);
-        std::vector<std::pair<uint32_t, double>> gMoon, gReacted, gComponents, gT2;
-        std::map<std::string, std::vector<uint32_t>> ratioCells;
+        // [0]:  the first hub (the AT);  [1]:  every hub (info)
+        std::vector<std::pair<uint32_t, double>> gMoon[2], gReacted[2], gComponents[2], gT2[2];
+        size_t hubCount(0);
+        for (auto& n : data.nodes)
+            hubCount += (n.kind == NodeKind::Hub) ? 1 : 0;
         for (auto& c : layout.Cells()) {
-            if (c.nodeID != hub)
+            const NodeData* node(nullptr);
+            for (auto& n : data.nodes)
+                if (n.nodeID == c.nodeID)
+                    node = &n;
+            if ((node == nullptr) or (node->kind != NodeKind::Hub))
                 continue;
             double w(std::max(1e-9, c.d0 * c.refLocal));
-            if (c.typeID == moon)
-                gMoon.push_back(std::make_pair(c.index, w));
-            else if (reacted.count(c.typeID) > 0)
-                gReacted.push_back(std::make_pair(c.index, w));
-            else if (components.count(c.typeID) > 0)
-                gComponents.push_back(std::make_pair(c.index, w));
-            else if (t2.count(c.typeID) > 0)
-                gT2.push_back(std::make_pair(c.index, w));
-            const char* cat(RatioCategory(*data.Type(c.typeID)));
-            if ((cat != nullptr) and (data.bills.count(c.typeID) > 0) and ((c.supply == Supply::Invented) or (c.supply == Supply::Manufactured)))
-                ratioCells[cat].push_back(c.index);
+            for (int k = (c.nodeID == hub) ? 0 : 1; k < 2; ++k) {
+                if (c.typeID == moon)
+                    gMoon[k].push_back(std::make_pair(c.index, w));
+                else if (reacted.count(c.typeID) > 0)
+                    gReacted[k].push_back(std::make_pair(c.index, w));
+                else if (components.count(c.typeID) > 0)
+                    gComponents[k].push_back(std::make_pair(c.index, w));
+                else if (t2.count(c.typeID) > 0)
+                    gT2[k].push_back(std::make_pair(c.index, w));
+            }
         }
+        std::map<std::string, std::vector<uint32_t>> ratioCells(Phase6RatioCells(data, layout, hub));
+        std::map<std::string, std::vector<double>> calCells(Phase6CalCells(data, layout, hub, ratioCells));
 
         // the moon removal
         int s(ShockDay), e(ShockDay + MoonDays + 10), atM(s), atR(s), atC(s), atT(s);
-        double peakM(GroupPeak(removed, control, gMoon, s, e, &atM)), peakR(GroupPeak(removed, control, gReacted, s, e, &atR));
-        double peakC(GroupPeak(removed, control, gComponents, s, e, &atC)), peakT(GroupPeak(removed, control, gT2, s, e, &atT));
+        double peakM(GroupPeak(removed, control, gMoon[0], s, e, &atM)), peakR(GroupPeak(removed, control, gReacted[0], s, e, &atR));
+        double peakC(GroupPeak(removed, control, gComponents[0], s, e, &atC)), peakT(GroupPeak(removed, control, gT2[0], s, e, &atT));
         Check((peakR >= 1.05) and (peakC >= 1.03) and (peakT >= 1.005),
               F("moon removal:  %u itself x%.3f (day %+d);  its reaction products x%.3f (day %+d), the components x%.3f (day %+d), the T2"
                 " x%.3f (day %+d) of the control (allowed:  products and components up 5%% and 3%% at least, T2 up 0.5%%)",
                 moon, peakM, atM - s, peakR, atR - s, peakC, atC - s, peakT, atT - s), failures);
+        {
+            int aM(s), aR(s), aC(s), aT(s);
+            double pM(GroupPeak(removed, control, gMoon[1], s, e, &aM)), pR(GroupPeak(removed, control, gReacted[1], s, e, &aR));
+            double pC(GroupPeak(removed, control, gComponents[1], s, e, &aC)), pT(GroupPeak(removed, control, gT2[1], s, e, &aT));
+            const std::string& name(TypeName(moon));
+            std::printf("  [info] moon removal over all %zu hubs (isk-weighted):  %u%s%s%s itself x%.3f (day %+d);  its reaction products x%.3f"
+                        " (day %+d), the components x%.3f (day %+d), the T2 x%.3f (day %+d)\n", hubCount, moon, name.empty() ? "" : " (",
+                        name.c_str(), name.empty() ? "" : ")", pM, aM - s, pR, aR - s, pC, aC - s, pT, aT - s);
+        }
         double backC(0.0), backT(0.0);
         int n(0);
         for (int d = days - 5; d < days; ++d, ++n) {
-            backC += GroupRel(removed, control, gComponents, d);
-            backT += GroupRel(removed, control, gT2, d);
+            backC += GroupRel(removed, control, gComponents[0], d);
+            backT += GroupRel(removed, control, gT2[0], d);
         }
         std::printf("  [info] %d days after the removal ended:  the components x%.3f, the T2 x%.3f of the control\n",
                     days - 3 - (ShockDay + MoonDays), backC / std::max(1, n), backT / std::max(1, n));
@@ -378,10 +468,72 @@ int Phase6Main(const StaticData& data, const Params& p, const std::vector<uint64
                 if (!r.empty())
                     daily.push_back(Median(r));
             }
-            double sim(Median(daily)), cal(Median(calRatios[cur.first]));
-            Check(std::fabs(sim / cur.second - 1.0) <= 0.20,
-                  F("T2 %s:  median price / bill %.3f at steady state (%zu cells);  PLAN 4.1 %.2f (x%.3f, allowed 20%%);  the calibration's %.3f",
-                    cur.first.c_str(), sim, rc->second.size(), cur.second, sim / cur.second, cal), failures);
+            double sim(Median(daily)), cal(Median(calCells[cur.first])), all(Median(calRatios[cur.first]));
+            if (!(cal > 0.0)) {
+                std::printf("  [skip] T2 %s:  the calibration has none\n", cur.first.c_str());
+                continue;
+            }
+            Check(std::fabs(sim / cal - 1.0) <= T2Tolerance,
+                  F("T2 %s:  median price / bill %.3f at steady state (%zu cells);  the calibration's %.3f (x%.3f, allowed 20%%;  over the same"
+                    " cells);  all such types %.3f;  PLAN 4.1 %.2f (x%.3f, not a target)", cur.first.c_str(), sim, rc->second.size(), cal,
+                    sim / cal, all, cur.second, sim / cur.second), failures);
+        }
+
+        /* the stand-ins (PLAN-logistics-chains-fix.md F1):  the stock model's producers of chain goods a chain makes elsewhere
+         *  (they ignore the removal).  hub traders don't buy from them unless HaulChainFallbacks */
+        {
+            std::map<uint32_t, std::map<uint8_t, uint32_t>> standIns;
+            uint32_t total(0);
+            for (auto& c : layout.Cells())
+                if (layout.ChainStandIn(c)) {
+                    ++standIns[c.nodeID][c.simClass];
+                    ++total;
+                }
+            std::string list;
+            for (auto& sn : standIns) {
+                list += F("  node %u:", sn.first);
+                for (auto& sc : sn.second)
+                    list += F(" %s %u", (sc.first == SimClass::MfgT2) ? "T2" : (sc.first == SimClass::Component) ? "components"
+                              : (sc.first == SimClass::Reaction) ? "reactions" : "PI", sc.second);
+            }
+            std::printf("  [info] chain stand-ins (the stock model's, of a type a chain makes elsewhere):  %u%s\n", total, list.c_str());
+            // what hub traders bought from stand-ins in both runs:  the chain classes (gated) and the others (counted only)
+            std::map<uint16_t, double> chainIsk, otherIsk;
+            Units chainUnits(0), otherUnits(0);
+            for (const Run6* r : { &control, &removed })
+                for (auto& cur : r->standIn) {
+                    const TypeData* t(data.Type(cur.first));
+                    double isk((t != nullptr) ? (double)cur.second * t->refPrice : 0.0);
+                    if ((t != nullptr) and World::ChainClass(t->simClass)) {
+                        chainIsk[cur.first] += isk;
+                        chainUnits += cur.second;
+                    } else {
+                        otherIsk[cur.first] += isk;
+                        otherUnits += cur.second;
+                    }
+                }
+            auto top = [](const std::map<uint16_t, double>& isk) {
+                std::vector<std::pair<double, uint16_t>> v;
+                double sum(0.0);
+                for (auto& cur : isk) {
+                    v.push_back(std::make_pair(cur.second, cur.first));
+                    sum += cur.second;
+                }
+                std::sort(v.rbegin(), v.rend());
+                std::string out(F("%.3g ISK at refPrice", sum));
+                for (size_t i = 0; (i < v.size()) and (i < 5); ++i)
+                    out += F("%s %u %.3g", (i == 0) ? ";  top:" : ",", v[i].second, v[i].first);
+                return out;
+            };
+            std::string what(F("%lld units of %zu types (%s), control and removal runs", (long long)chainUnits, chainIsk.size(),
+                               top(chainIsk).c_str()));
+            if (p.logistics and !p.haulChainFallbacks)
+                Check(chainUnits == 0, "no chain good hauled out of a stock-model stand-in:  " + what, failures);
+            else
+                std::printf("  [info] chain goods hauled out of stock-model stand-ins (%s):  %s\n",
+                            p.logistics ? "HaulChainFallbacks on" : "no logistics", what.c_str());
+            std::printf("  [info] other classes' stand-ins (T1 and the like, not gated) exported %lld units of %zu types (%s)\n",
+                        (long long)otherUnits, otherIsk.size(), top(otherIsk).c_str());
         }
 
         // invention
