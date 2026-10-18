@@ -157,6 +157,12 @@ public:
     void AddIndustrialActivity(uint32 systemID, double m3);
     // a hacking or archaeology container opened in systemID, adds sov.IndustrialPointsPerHack industrial points
     void AddHackingActivity(uint32 systemID);
+    /* GM:  sets systemID's military or industrial index to points (capped 0..57.6M) after the decay due so far, sets its
+     *  'increasing' hint by the direction of the change and re-checks the hub's upgrades at once when the level changed.
+     *  saved with the other indices.  false if the system can't be claimed */
+    bool SetDevIndexPoints(uint32 systemID, bool military, int64 points);
+    // the IHub's up/down hint of an index
+    bool IsIndexIncreasing(uint32 systemID, bool military);
     // hourly index decay
     void Process();
     void SaveDevIndices();
@@ -185,7 +191,9 @@ public:
     // highest online level of an upgrade family, 0 if none
     uint8 GetActiveUpgradeLevel(uint32 systemID, uint8 family);
     bool HasActiveUpgrade(uint32 systemID, uint16 typeID);
-    // an upgrade was added to hubID's inventory; the hub's SE refreshes the flags on its next tic
+    // online upgrades of systemID's hub
+    uint32 GetActiveUpgradeCount(uint32 systemID);
+    // an upgrade was added to hubID's inventory or an index crossed a level; the hub's SE refreshes the flags on its next tic
     void MarkUpgradesDirty(uint32 hubID)                { m_upgradeDirty.insert(hubID); }
     bool TakeUpgradesDirty(uint32 hubID)                { return (m_upgradeDirty.erase(hubID) > 0); }
     // sets hubID's upgrades online/offline from the current requirements and hub state
@@ -211,6 +219,9 @@ private:
     DevIndexData& GetDevIndex(uint32 systemID);
     // rawPoints (before the band modifier) of military or industrial activity in systemID
     void GainIndex(uint32 systemID, double rawPoints, bool military);
+    /* an index of systemID crossed a level:  the claim's hub re-checks its upgrades, now or on the hub's next tic.
+     *  decay stays with the hourly RefreshAllUpgrades */
+    void IndexLevelChanged(uint32 systemID, bool now);
     // decay one index entry up to 'now'.  hourly also closes the gain period ('increasing' flags)
     void Decay(DevIndexData& data, int64 now, bool hourly);
 

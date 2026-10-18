@@ -726,11 +726,69 @@ void SovereigntyDataMgr::GainIndex(uint32 systemID, double rawPoints, bool milit
     int64 points = DevIndex::GainPoints(rawPoints, index, military);
     if (points < 1)
         return;
+    uint8 wasLevel(DevIndex::LevelForPoints(index));
     index = DevIndex::AddPoints(index, points);
     (military ? data.militaryGain : data.industrialGain) += points;
     data.dirty = true;
     _log(SOV__DEBUG, "GainIndex() - %lli %s points in %u (now %lli)", (long long)points, (military ? "military" : "industrial"),
          systemID, (long long)index);
+    // installed upgrades waiting for this level come online on the hub's next tic, not at the hourly refresh
+    if (DevIndex::LevelForPoints(index) != wasLevel)
+        IndexLevelChanged(systemID, false);
+}
+
+void SovereigntyDataMgr::IndexLevelChanged(uint32 systemID, bool now)
+{
+    uint32 hubID(GetSovereigntyData(systemID).hubID);
+    if (hubID == 0)
+        return;
+    if (now) {
+        m_upgradeDirty.erase(hubID);
+        RefreshUpgrades(systemID, hubID);
+    } else {
+        MarkUpgradesDirty(hubID);
+    }
+}
+
+bool SovereigntyDataMgr::SetDevIndexPoints(uint32 systemID, bool military, int64 points)
+{
+    if (!IsClaimable(systemID))
+        return false;
+
+    DevIndexData& data = GetDevIndex(systemID);
+    // the decay due so far comes off first, so the new value starts from now
+    Decay(data, GetFileTimeNow(), false);
+    int64& index(military ? data.military : data.industrial);
+    points = std::max<int64>(0, std::min(DevIndex::MaxPoints, points));
+    int64 was(index);
+    uint8 wasLevel(DevIndex::LevelForPoints(was));
+    index = points;
+    // the hint follows the change until the next hourly tic weighs the real activity again
+    if (points != was)
+        (military ? data.militaryIncreasing : data.industrialIncreasing) = (points > was);
+    data.dirty = true;
+    _log(SOV__INFO, "SetDevIndexPoints() - %s index of %u set to %lli (was %lli)", (military ? "military" : "industrial"), systemID,
+         (long long)points, (long long)was);
+    // installed upgrades follow at once
+    if (DevIndex::LevelForPoints(points) != wasLevel)
+        IndexLevelChanged(systemID, true);
+    return true;
+}
+
+bool SovereigntyDataMgr::IsIndexIncreasing(uint32 systemID, bool military)
+{
+    std::unordered_map<uint32, DevIndexData>::iterator itr = m_devIndex.find(systemID);
+    if (itr == m_devIndex.end())
+        return false;
+    return (military ? itr->second.militaryIncreasing : itr->second.industrialIncreasing);
+}
+
+uint32 SovereigntyDataMgr::GetActiveUpgradeCount(uint32 systemID)
+{
+    std::map<uint32, std::set<uint16>>::iterator itr = m_activeUpgrades.find(systemID);
+    if (itr == m_activeUpgrades.end())
+        return 0;
+    return (uint32)itr->second.size();
 }
 
 void SovereigntyDataMgr::AddMilitaryActivity(uint32 systemID, double bountyISK)
