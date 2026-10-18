@@ -2456,6 +2456,17 @@ void Client::QueueDestinyUpdate(PyTuple **update, bool DoPackage /*false*/, bool
 }
 
 void Client::_SendQueuedUpdates() {
+    /* updates queued in space before a dock in the same packet or tick would reach the client after its ballpark is
+     *  gone (michelle "No ballpark for update", fxsequencer OnSpecialFX on a None ballpark).  docked, they are dropped;
+     *  the events (attribute changes) still go, as OnMultiEvent
+     */
+    if (!m_destinyUpdateQueue->empty() and sDataMgr.IsStation(m_locationID)) {
+        _log(CLIENT__QUEUE_DUMP, "%s: dropping %u queued destiny updates, docked in %u", m_char.get() == nullptr ? "?" : m_char->name(),
+                (uint32)m_destinyUpdateQueue->size(), m_locationID);
+        m_destinyUpdateQueue->clear();
+        m_packaged = false;
+    }
+
     if (!m_destinyUpdateQueue->empty()) {
         if (m_destinyEventQueue->empty()) {
             DoDestinyUpdateMain_2 dum;
