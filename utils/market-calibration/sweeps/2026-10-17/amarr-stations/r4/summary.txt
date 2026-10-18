@@ -1,0 +1,38 @@
+market sim sweep:  8 sets, phases 2, 3 seed(s), /tmp/claude-1000/-home-renn-Sources-evemu-renn/2868d87b-f7ba-432a-a106-ea2503ad2b9e/scratchpad/amarr/gen/export-lines.json
+runs finished 24 of 24 (runs.csv;  run the same command again to do the rest)
+complete sets 8;  passing every phase 2 acceptance test (PLAN 4.1 T1 targets aside) 4;  all of them 4
+
+ranked (fails without / with the T1 PLAN 4.1 targets, max and mean use of the tests' room, worst metric):
+  #1   set 6    fails 0/0  max_u 0.75  mean_u 0.19  worst p2.noise.Modules       EconomyScale=0.03  NodeLineHeadroom=2.0
+  #2   set 4    fails 0/0  max_u 0.76  mean_u 0.19  worst p2.noise.Modules       EconomyScale=0.03  NodeLineHeadroom=1.25
+  #3   set 5    fails 0/0  max_u 0.77  mean_u 0.19  worst p2.noise.Modules       EconomyScale=0.03  NodeLineHeadroom=1.5
+  #4   set 7    fails 0/0  max_u 0.78  mean_u 0.20  worst p2.noise.Modules       EconomyScale=0.03  NodeLineHeadroom=3.0
+  #5   set 1    fails 1/1  max_u 1.12  mean_u 0.27  worst p2.noise.Modules       EconomyScale=0.01  NodeLineHeadroom=1.5
+  #6   set 0    fails 1/1  max_u 1.15  mean_u 0.27  worst p2.noise.Modules       EconomyScale=0.01  NodeLineHeadroom=1.25
+  #7   set 2    fails 1/1  max_u 1.16  mean_u 0.28  worst p2.noise.Modules       EconomyScale=0.01  NodeLineHeadroom=2.0
+  #8   set 3    fails 1/1  max_u 1.17  mean_u 0.27  worst p2.noise.Modules       EconomyScale=0.01  NodeLineHeadroom=3.0
+
+checks that failed (sets):
+  2:(d) noise                                4 of 8:  1 0 2 3
+
+rank correlation (Spearman) of each key with the scores and the borderline metrics:
+  metric                   EconomyS NodeLine
+  max_u                       -0.87    +0.29
+  mean_u                      -0.87    +0.44
+  fails_excl_t1               -1.00    +0.00
+  p2.index_max                +0.88    +0.02
+  p2.money_max                -0.94    -0.11
+  p2.noise.Charges            -0.17    +0.42
+  p2.noise.Commodities        -0.90    -0.10
+  p2.noise.Implants           -0.90    -0.30
+  p2.noise.Materials          -0.49    +0.02
+  p2.noise.Modules            -0.87    +0.10
+  p2.noise.PI                 -0.22    +0.39
+  p2.noise.Ships              -0.87    +0.24
+  p2.noise_off_floor.Charg    -0.83    -0.15
+  p2.noise_off_floor.Commo    -0.90    +0.10
+  p2.noise_off_floor.Impla    -0.93    -0.10
+  p2.noise_off_floor.Mater    -0.39    +0.10
+  p2.noise_off_floor.Modul    -0.87    +0.34
+  p2.noise_off_floor.PI       -0.22    +0.39
+  p2.noise_off_floor.Ships    -0.87    +0.24

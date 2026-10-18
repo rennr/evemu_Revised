@@ -1,0 +1,199 @@
+market sim harness:  6926 types, 5 nodes, 0 vendor offers, 365 days, 1 seed(s), EconomyScale 0.1
+  node 1 (station 60003760) works at 60 stations (mfg 57, inv 41;  farthest 5 jumps;  +45 beyond its constellation);  manufacturing need 1455.4, wants 2910.8 sim lines, has 855 (short 2055.8, 2056 virtual lines serve it);  invention need 695.9, wants 1391.9 sim lines, has 246 (short 1145.9, 1146 virtual lines serve it)
+  node 2 (station 60008494) works at 38 stations (mfg 38, inv 37;  farthest 5 jumps;  +37 beyond its constellation);  manufacturing need 272.0, wants 544.0 sim lines, has 570;  invention need 117.5, wants 235.0 sim lines, has 228 (short 7.0, 7 virtual lines serve it)
+  node 3 (station 60011866) works at 32 stations (mfg 29, inv 25;  farthest 5 jumps;  +25 beyond its constellation);  manufacturing need 155.0, wants 310.0 sim lines, has 435;  invention need 72.5, wants 145.1 sim lines, has 150
+  node 4 (station 60004588) works at 24 stations (mfg 20, inv 9;  farthest 5 jumps;  +18 beyond its constellation);  manufacturing need 145.9, wants 291.7 sim lines, has 300;  invention need 73.5, wants 147.0 sim lines, has 54 (short 93.0, 94 virtual lines serve it)
+  node 5 (station 60005686) works at 14 stations (mfg 12, inv 10;  farthest 5 jumps;  +10 beyond its constellation);  manufacturing need 72.9, wants 145.9 sim lines, has 165;  invention need 29.9, wants 59.7 sim lines, has 48 (short 11.7, 12 virtual lines serve it)
+node 1 works at 60 stations (mfg 57, inv 41;  farthest 5 jumps;  +45 beyond its constellation);  manufacturing need 1455.4, wants 2910.8 sim lines, has 855 (short 2055.8, 2056 virtual lines serve it);  invention need 695.9, wants 1391.9 sim lines, has 246 (short 1145.9, 1146 virtual lines serve it)
+  station 60003760  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60002953  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60002959  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60003055  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60003757  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60004423  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60002950  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60002956  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60003052  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60003058  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60003754  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60003763  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60003769  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60014659  base    3 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60014935  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60006427  added   1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60001306  added   1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60001438  added   1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60001684  added   1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60002419  added   1 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002065  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002248  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002416  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60001204  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002068  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002071  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002074  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002245  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002251  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002254  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002407  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60003802  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60004306  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60014533  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002263  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002266  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002392  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002404  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002410  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60003883  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60003886  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60004282  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60004396  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60004048  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60000988  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60000991  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60001207  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002260  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002299  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002305  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002308  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002311  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002383  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002413  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60004000  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60004024  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60004099  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010438  added   5 jumps  mfg 0 lines (sim 0, room 0)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010441  added   5 jumps  mfg 0 lines (sim 0, room 0)  inv 20 lines (sim 6, room 6)  refinery
+  station 60013114  added   5 jumps  mfg 0 lines (sim 0, room 0)  inv 20 lines (sim 6, room 6)  refinery
+  manufacturing:  2056 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+  invention:  1146 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+node 2 works at 38 stations (mfg 38, inv 37;  farthest 5 jumps;  +37 beyond its constellation);  manufacturing need 272.0, wants 544.0 sim lines, has 570;  invention need 117.5, wants 235.0 sim lines, has 228 (short 7.0, 7 virtual lines serve it)
+  station 60008494  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60002209  added   1 jumps  mfg 50 lines (sim 15, room 15)  inv 40 lines (sim 12, room 12)  refinery
+  station 60002212  added   1 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002173  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002176  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002179  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002182  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60001096  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60006346  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60006349  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60006352  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60006355  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60001099  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60001168  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002185  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002188  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002191  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002215  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002218  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60006220  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60006229  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60012979  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002194  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60006223  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60006238  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60006241  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002116  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010792  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60001078  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60001081  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002083  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002086  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002197  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60006244  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60006247  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60014590  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60014593  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60014596  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  manufacturing:  0 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+  invention:  7 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+node 3 works at 32 stations (mfg 29, inv 25;  farthest 5 jumps;  +25 beyond its constellation);  manufacturing need 155.0, wants 310.0 sim lines, has 435;  invention need 72.5, wants 145.1 sim lines, has 150
+  station 60011866  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60011863  base    2 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60011869  base    2 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60011872  base    2 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60011977  base    2 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60011983  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60015013  base    2 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60010927  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60001225  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010726  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60011929  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010894  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010924  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010948  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60014509  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60014512  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60014515  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60013285  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010930  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60011857  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010762  added   5 jumps  mfg 0 lines (sim 0, room 0)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010783  added   5 jumps  mfg 0 lines (sim 0, room 0)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010861  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010864  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010870  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010906  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010909  added   5 jumps  mfg 0 lines (sim 0, room 0)  inv 20 lines (sim 6, room 6)  refinery
+  station 60011734  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60011737  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60011740  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60011743  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60011917  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  manufacturing:  0 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+  invention:  0 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+node 4 works at 24 stations (mfg 20, inv 9;  farthest 5 jumps;  +18 beyond its constellation);  manufacturing need 145.9, wants 291.7 sim lines, has 300;  invention need 73.5, wants 147.0 sim lines, has 54 (short 93.0, 94 virtual lines serve it)
+  station 60004588  base    0 jumps  mfg 0 lines (sim 0, room 0)  inv 0 lines (sim 0, room 0)
+  station 60005725  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60005728  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60005731  base    4 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60014779  base    5 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60015041  base    5 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60005086  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60014833  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60006535  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60010066  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60010072  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60010291  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60010294  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60010297  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60012124  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60004744  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60013234  added   4 jumps  mfg 0 lines (sim 0, room 0)  inv 20 lines (sim 6, room 6)  refinery
+  station 60014107  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60014101  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60013225  added   5 jumps  mfg 0 lines (sim 0, room 0)  inv 20 lines (sim 6, room 6)  refinery
+  station 60013228  added   5 jumps  mfg 0 lines (sim 0, room 0)  inv 20 lines (sim 6, room 6)  refinery
+  station 60012154  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60012157  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60014104  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  manufacturing:  0 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+  invention:  94 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+node 5 works at 14 stations (mfg 12, inv 10;  farthest 5 jumps;  +10 beyond its constellation);  manufacturing need 72.9, wants 145.9 sim lines, has 165;  invention need 29.9, wants 59.7 sim lines, has 48 (short 11.7, 12 virtual lines serve it)
+  station 60005686  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60005683  base    3 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60005689  base    3 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60014770  base    4 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60004744  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60013225  added   2 jumps  mfg 0 lines (sim 0, room 0)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002137  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002140  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60014077  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60014080  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002143  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002146  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010435  added   4 jumps  mfg 0 lines (sim 0, room 0)  inv 20 lines (sim 6, room 6)  refinery
+  station 60004810  added   5 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  manufacturing:  0 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+  invention:  12 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+  [info] lines node 1 manufacturing:  peak 0 / 2911 (0.00), mean 0.0;  stations 57, sim lines 855, counted 2056 (peak 0);  need 1455.4, wanted 2910.8;  refused 0
+  [info] lines node 1 invention:  peak 0 / 1392 (0.00), mean 0.0;  stations 41, sim lines 246, counted 1146 (peak 0);  need 695.9, wanted 1391.9;  refused 0
+  [info] lines node 2 manufacturing:  peak 0 / 570 (0.00), mean 0.0;  stations 38, sim lines 570, counted 0 (peak 0);  need 272.0, wanted 544.0;  refused 0
+  [info] lines node 2 invention:  peak 0 / 235 (0.00), mean 0.0;  stations 37, sim lines 228, counted 7 (peak 0);  need 117.5, wanted 235.0;  refused 0
+  [info] lines node 3 manufacturing:  peak 0 / 435 (0.00), mean 0.0;  stations 29, sim lines 435, counted 0 (peak 0);  need 155.0, wanted 310.0;  refused 0
+  [info] lines node 3 invention:  peak 0 / 150 (0.00), mean 0.0;  stations 25, sim lines 150, counted 0 (peak 0);  need 72.5, wanted 145.1;  refused 0
+  [info] lines node 4 manufacturing:  peak 0 / 300 (0.00), mean 0.0;  stations 20, sim lines 300, counted 0 (peak 0);  need 145.9, wanted 291.7;  refused 0
+  [info] lines node 4 invention:  peak 0 / 148 (0.00), mean 0.0;  stations 9, sim lines 54, counted 94 (peak 0);  need 73.5, wanted 147.0;  refused 0
+  [info] lines node 5 manufacturing:  peak 0 / 165 (0.00), mean 0.0;  stations 12, sim lines 165, counted 0 (peak 0);  need 72.9, wanted 145.9;  refused 0
+  [info] lines node 5 invention:  peak 0 / 60 (0.00), mean 0.0;  stations 10, sim lines 48, counted 12 (peak 0);  need 29.9, wanted 59.7;  refused 0

@@ -1,0 +1,102 @@
+market sim harness:  6926 types, 5 nodes, 0 vendor offers, 365 days, 1 seed(s), EconomyScale 0.01
+  node 1 (station 60003760) works at 39 stations (mfg 39, inv 24;  farthest 4 jumps;  +24 beyond its constellation);  manufacturing need 145.5, wants 291.1 sim lines, has 585;  invention need 69.6, wants 139.2 sim lines, has 144
+  node 2 (station 60008494) works at 6 stations (mfg 6, inv 3;  farthest 2 jumps;  +5 beyond its constellation);  manufacturing need 27.2, wants 54.4 sim lines, has 90;  invention need 11.7, wants 23.5 sim lines, has 24
+  node 3 (station 60011866) works at 10 stations (mfg 10, inv 3;  farthest 3 jumps;  +3 beyond its constellation);  manufacturing need 15.5, wants 31.0 sim lines, has 150;  invention need 7.3, wants 14.5 sim lines, has 18
+  node 4 (station 60004588) works at 9 stations (mfg 7, inv 3;  farthest 5 jumps;  +3 beyond its constellation);  manufacturing need 14.6, wants 29.2 sim lines, has 105;  invention need 7.4, wants 14.7 sim lines, has 18
+  node 5 (station 60005686) works at 7 stations (mfg 6, inv 2;  farthest 4 jumps;  +3 beyond its constellation);  manufacturing need 7.3, wants 14.6 sim lines, has 90;  invention need 3.0, wants 6.0 sim lines, has 6
+node 1 works at 39 stations (mfg 39, inv 24;  farthest 4 jumps;  +24 beyond its constellation);  manufacturing need 145.5, wants 291.1 sim lines, has 585;  invention need 69.6, wants 139.2 sim lines, has 144
+  station 60003760  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60002953  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60002959  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60003055  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60003757  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60004423  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60002950  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60002956  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60003052  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60003058  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60003754  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60003763  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60003769  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60014659  base    3 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60014935  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60002419  added   1 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002065  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002248  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002416  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60001204  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002068  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002071  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002074  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002245  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002251  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002254  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002407  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60003802  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60004306  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60014533  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002263  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002266  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002392  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002404  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002410  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60003883  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60003886  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60004282  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60004396  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  manufacturing:  0 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+  invention:  0 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+node 2 works at 6 stations (mfg 6, inv 3;  farthest 2 jumps;  +5 beyond its constellation);  manufacturing need 27.2, wants 54.4 sim lines, has 90;  invention need 11.7, wants 23.5 sim lines, has 24
+  station 60008494  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60008650  added   1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60014632  added   1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60002209  added   1 jumps  mfg 50 lines (sim 15, room 15)  inv 40 lines (sim 12, room 12)  refinery
+  station 60002212  added   1 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60002173  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  manufacturing:  0 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+  invention:  0 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+node 3 works at 10 stations (mfg 10, inv 3;  farthest 3 jumps;  +3 beyond its constellation);  manufacturing need 15.5, wants 31.0 sim lines, has 150;  invention need 7.3, wants 14.5 sim lines, has 18
+  station 60011866  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60011863  base    2 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60011869  base    2 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60011872  base    2 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60011977  base    2 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60011983  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60015013  base    2 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60010927  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60001225  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60010726  added   3 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  manufacturing:  0 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+  invention:  0 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+node 4 works at 9 stations (mfg 7, inv 3;  farthest 5 jumps;  +3 beyond its constellation);  manufacturing need 14.6, wants 29.2 sim lines, has 105;  invention need 7.4, wants 14.7 sim lines, has 18
+  station 60004588  base    0 jumps  mfg 0 lines (sim 0, room 0)  inv 0 lines (sim 0, room 0)
+  station 60005725  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60005728  base    1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60005731  base    4 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60014779  base    5 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60015041  base    5 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60004744  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60013234  added   4 jumps  mfg 0 lines (sim 0, room 0)  inv 20 lines (sim 6, room 6)  refinery
+  station 60014107  added   4 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  manufacturing:  0 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+  invention:  0 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+node 5 works at 7 stations (mfg 6, inv 2;  farthest 4 jumps;  +3 beyond its constellation);  manufacturing need 7.3, wants 14.6 sim lines, has 90;  invention need 3.0, wants 6.0 sim lines, has 6
+  station 60005686  base    0 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60005683  base    3 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60005689  base    3 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60014770  base    4 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60014806  added   1 jumps  mfg 50 lines (sim 15, room 15)  inv 0 lines (sim 0, room 0)  refinery
+  station 60004744  added   2 jumps  mfg 50 lines (sim 15, room 15)  inv 20 lines (sim 6, room 6)  refinery
+  station 60013225  added   2 jumps  mfg 0 lines (sim 0, room 0)  inv 20 lines (sim 6, room 6)  refinery
+  manufacturing:  0 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+  invention:  0 counted lines (0 used);  held 0 now, peak 0, mean 0.0 (counted:  peak 0);  short Free 0, Reserve 0
+  [info] lines node 1 manufacturing:  peak 0 / 585 (0.00), mean 0.0;  stations 39, sim lines 585, counted 0 (peak 0);  need 145.5, wanted 291.1;  refused 0
+  [info] lines node 1 invention:  peak 0 / 144 (0.00), mean 0.0;  stations 24, sim lines 144, counted 0 (peak 0);  need 69.6, wanted 139.2;  refused 0
+  [info] lines node 2 manufacturing:  peak 0 / 90 (0.00), mean 0.0;  stations 6, sim lines 90, counted 0 (peak 0);  need 27.2, wanted 54.4;  refused 0
+  [info] lines node 2 invention:  peak 0 / 24 (0.00), mean 0.0;  stations 3, sim lines 24, counted 0 (peak 0);  need 11.7, wanted 23.5;  refused 0
+  [info] lines node 3 manufacturing:  peak 0 / 150 (0.00), mean 0.0;  stations 10, sim lines 150, counted 0 (peak 0);  need 15.5, wanted 31.0;  refused 0
+  [info] lines node 3 invention:  peak 0 / 18 (0.00), mean 0.0;  stations 3, sim lines 18, counted 0 (peak 0);  need 7.3, wanted 14.5;  refused 0
+  [info] lines node 4 manufacturing:  peak 0 / 105 (0.00), mean 0.0;  stations 7, sim lines 105, counted 0 (peak 0);  need 14.6, wanted 29.2;  refused 0
+  [info] lines node 4 invention:  peak 0 / 18 (0.00), mean 0.0;  stations 3, sim lines 18, counted 0 (peak 0);  need 7.4, wanted 14.7;  refused 0
+  [info] lines node 5 manufacturing:  peak 0 / 90 (0.00), mean 0.0;  stations 6, sim lines 90, counted 0 (peak 0);  need 7.3, wanted 14.6;  refused 0
+  [info] lines node 5 invention:  peak 0 / 6 (0.00), mean 0.0;  stations 2, sim lines 6, counted 0 (peak 0);  need 3.0, wanted 6.0;  refused 0
