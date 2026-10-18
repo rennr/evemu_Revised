@@ -118,6 +118,8 @@ BeyonceBound::BeyonceBound(EVEServiceManager& mgr, BeyonceService& parent, Clien
     this->Add("CmdWarpToStuffAutopilot", &BeyonceBound::CmdWarpToStuffAutopilot); //*
     this->Add("CmdAbandonLoot", &BeyonceBound::CmdAbandonLoot);
     this->Add("CmdChangeStructureOwner", &BeyonceBound::CmdChangeStructureOwner);
+    this->Add("GetSovStructExitTime", &BeyonceBound::GetSovStructExitTime);
+    this->Add("CmdChangeSovStructExitTime", &BeyonceBound::CmdChangeSovStructExitTime);
 
     this->Add("CmdFleetRegroup", &BeyonceBound::CmdFleetRegroup);
     this->Add("CmdFleetTagTarget", &BeyonceBound::CmdFleetTagTarget);
@@ -920,6 +922,40 @@ PyResult BeyonceBound::CmdChangeStructureOwner(PyCallArgs &call, PyInt* itemID, 
 
     pCO->ChangeOwner(newOwner, PosMgrDB::GetCorpAllianceID(newOwner));
     _log(POS__MESSAGE, "%s transferred customs office %u from %u to %u", pClient->GetName(), pCO->GetID(), ownerID, newOwner);
+    return PyStatic.NewNone();
+}
+
+/* infrastructure hub settings (infrastructureHub.py InfrastructureHubManagementWnd), Directors only in the client:
+ *    self.time = park.GetSovStructExitTime(self.hubID) / 100
+ *    park.CmdChangeSovStructExitTime(self.hubID, oldTime * 100, newTime * 100)
+ *  the time is the hour the hub leaves reinforcement, hour * 100 (0 - 2300)
+ */
+PyResult BeyonceBound::GetSovStructExitTime(PyCallArgs &call, PyInt* hubID) {
+    SystemManager* pSystem(call.client->SystemMgr());
+    SystemEntity* pSE(pSystem == nullptr ? nullptr : pSystem->GetSE(hubID->value()));
+    if ((pSE == nullptr) or !pSE->IsIHubSE())
+        throw CustomError ("That is not an infrastructure hub.");
+    return new PyInt(PosMgrDB::GetSovExitTime(pSE->GetID()));
+}
+
+PyResult BeyonceBound::CmdChangeSovStructExitTime(PyCallArgs &call, PyInt* hubID, PyInt* oldTime, PyInt* newTime) {
+    Client* pClient(call.client);
+    SystemManager* pSystem(pClient->SystemMgr());
+    SystemEntity* pSE(pSystem == nullptr ? nullptr : pSystem->GetSE(hubID->value()));
+    if ((pSE == nullptr) or !pSE->IsIHubSE())
+        throw CustomError ("That is not an infrastructure hub.");
+    if ((pClient->GetAllianceID() == 0) or ((uint32)pSE->GetAllianceID() != pClient->GetAllianceID()))
+        throw CustomError ("Your alliance does not hold this infrastructure hub.");
+    if ((pClient->GetCorpRole() & Corp::Role::Director) == 0)
+        throw CustomError ("Only Directors can change the infrastructure hub's settings.");
+    int32 value(newTime->value());
+    if ((value < 0) or (value > 2300) or (value % 100) != 0)
+        throw CustomError ("That is not a valid reinforcement exit time.");
+    if (PosMgrDB::GetSovExitTime(pSE->GetID()) != oldTime->value())
+        throw CustomError ("The infrastructure hub's settings were changed by someone else.  Please open them again.");
+
+    PosMgrDB::SetSovExitTime(pSE->GetID(), (uint16)value);
+    _log(POS__MESSAGE, "%s set the reinforcement exit time of hub %u to %04i", pClient->GetName(), pSE->GetID(), value);
     return PyStatic.NewNone();
 }
 

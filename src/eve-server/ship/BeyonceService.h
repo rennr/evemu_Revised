@@ -95,6 +95,8 @@ protected:
     PyResult CmdAbandonLoot(PyCallArgs& call, PyList* wreckIDs);
     // menusvc.TransferCorporationOwnership:  remotePark.CmdChangeStructureOwner(itemID, oldOwnerID, newOwnerID)
     PyResult CmdChangeStructureOwner(PyCallArgs& call, PyInt* itemID, PyInt* oldOwnerID, PyInt* newOwnerID);
+    PyResult GetSovStructExitTime(PyCallArgs& call, PyInt* hubID);
+    PyResult CmdChangeSovStructExitTime(PyCallArgs& call, PyInt* hubID, PyInt* oldTime, PyInt* newTime);
     PyResult UpdateStateRequest(PyCallArgs& call);
     PyResult CmdJumpThroughFleet(PyCallArgs& call, PyInt* otherCharID, PyInt* otherShipID, PyInt* beaconID, PyInt* solarSystemID);
     PyResult CmdJumpThroughAlliance(PyCallArgs& call, PyInt* otherShipID, PyInt* beaconID, PyInt* solarSystemID);

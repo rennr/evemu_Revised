@@ -35,6 +35,9 @@ public:
     static int8 GetStructureState(uint32 itemID);
     // the corp's current alliance, 0 for none
     static uint32 GetCorpAllianceID(uint32 corpID);
+    // infrastructure hub reinforcement exit time, hour * 100 (0 - 2300)
+    static uint16 GetSovExitTime(uint32 itemID);
+    static void SetSovExitTime(uint32 itemID, uint16 exitTime);
     // relationship (contact standing) ownerID (corp or alliance) set for contactID.  false if none
     static bool GetContactStanding(uint32 ownerID, uint32 contactID, float& standing);
 

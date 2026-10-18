@@ -632,3 +632,22 @@ void PosMgrDB::UpdateDeployFlags(int32 itemID, EVEPOS::TowerData& data)
         " SET anchor=%i, unanchor=%i, online=%i, offline=%i WHERE itemID = %u",
         data.anchor, data.unanchor, data.online, data.offline, itemID);
 }
+
+uint16 PosMgrDB::GetSovExitTime(uint32 itemID)
+{
+    DBQueryResult res;
+    if (!sDatabase.RunQuery(res, "SELECT sovExitTime FROM posStructureData WHERE itemID = %u", itemID)) {
+        codelog(POS__ERROR, "Error in GetSovExitTime query: %s", res.error.c_str());
+        return 0;
+    }
+    DBResultRow row;
+    if (!res.GetRow(row))
+        return 0;
+    return (uint16)row.GetUInt(0);
+}
+
+void PosMgrDB::SetSovExitTime(uint32 itemID, uint16 exitTime)
+{
+    DBerror err;
+    sDatabase.RunQuery(err, "UPDATE posStructureData SET sovExitTime = %u WHERE itemID = %u", exitTime, itemID);
+}
