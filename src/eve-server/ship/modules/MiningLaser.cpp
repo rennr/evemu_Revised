@@ -181,14 +181,19 @@ void MiningLaser::DeactivateCycle(bool abort/*false*/)
 /** @todo verify for ice and gas */
 void MiningLaser::ProcessCycle(bool abort/*false*/)
 {
+    // the cargo-full and depleted paths below deactivate this module, which clears m_targetSE.  work on our own copy
+    SystemEntity* pTarget(m_targetSE);
+    if (pTarget == nullptr)
+        return;
+
     float cycleVol(GetMiningVolume());
 
-    InventoryItemRef roidRef(m_targetSE->GetSelf());
+    InventoryItemRef roidRef(pTarget->GetSelf());
     // verify gas clouds have volume attr.
     float oreVolume(roidRef->GetAttribute(AttrVolume).get_float());
 
     if ((cycleVol < oreVolume) or (cycleVol <= 0) or (oreVolume <= 0)) {
-        _log(MINING__ERROR, "%s(%u) - Mining Laser could not extract ore from %s(%u)", m_modRef->name(), m_modRef->itemID(), roidRef->name(), m_targetSE->GetID() );
+        _log(MINING__ERROR, "%s(%u) - Mining Laser could not extract ore from %s(%u)", m_modRef->name(), m_modRef->itemID(), roidRef->name(), pTarget->GetID() );
         m_shipRef->GetPilot()->SendNotifyMsg("Your %s deactivates because there was an error in it's processing.  Ref: ServerError 06428.", m_modRef->name());
         ActiveModule::DeactivateCycle(true);
         return;
@@ -234,9 +239,9 @@ void MiningLaser::ProcessCycle(bool abort/*false*/)
     if (oreAmount <= 0)
         return;
 
-    AsteroidSE* pRoid(m_targetSE->GetAsteroidSE());
+    AsteroidSE* pRoid(pTarget->GetAsteroidSE());
     if (pRoid == nullptr) {
-        _log(MINING__ERROR, "%s(%u) - %s(%u) is not an asteroid", m_modRef->name(), m_modRef->itemID(), roidRef->name(), m_targetSE->GetID());
+        _log(MINING__ERROR, "%s(%u) - %s(%u) is not an asteroid", m_modRef->name(), m_modRef->itemID(), roidRef->name(), pTarget->GetID());
         CancelOnError();
         return;
     }
@@ -245,12 +250,11 @@ void MiningLaser::ProcessCycle(bool abort/*false*/)
     if (oreAmount >= roidQuantity) {
         //rock is depleted.
         // this will get all active miners on depleted rock and set mined amount accordingly for each.
-        m_targetSE->TargetMgr()->Depleted(this);
-        SystemEntity* pSE(m_targetSE);
-        RemoveTarget(m_targetSE);
+        pTarget->TargetMgr()->Depleted(this);
+        RemoveTarget(pTarget);
         // m_targetSE is null after above call returns
-        pSE->Delete();
-        SafeDelete(pSE);
+        pTarget->Delete();
+        SafeDelete(pTarget);
         return;
     }
     // quantity, mass, radius (broadcast) and the industrial index
