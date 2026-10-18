@@ -186,7 +186,9 @@ void StructureItem::AddItem(InventoryItemRef iRef)
 
     InventoryItem::AddItem(iRef);
 
-    if (mySE->IsCOSE())
+    // cargo containers are StructureItems too, and get their SE after their contents (a salvaged wreck's loot moves
+    //  into the new jetcan before the can is put in space)
+    if ((mySE != nullptr) and mySE->IsCOSE())
         mySE->GetCOSE()->VerifyAddItem(iRef);
 }
 
@@ -200,7 +202,13 @@ void StructureItem::RemoveItem(InventoryItemRef iRef)
 
 void StructureItem::Rename(std::string name)
 {
-    if (mySE->GetPOSSE()->GetState() > EVEPOS::StructureState::Unanchored)
+    // cargo containers (jetcans, anchored and station containers) are StructureItems too, without a POS SE:  a plain rename
+    StructureSE* pPOS(mySE == nullptr ? nullptr : mySE->GetPOSSE());
+    if ((pPOS == nullptr) and (categoryID() == EVEDB::invCategories::Celestial)) {
+        InventoryItem::Rename(name);
+        return;
+    }
+    if ((pPOS != nullptr) and (pPOS->GetState() > EVEPOS::StructureState::Unanchored))
     {
         InventoryItem::Rename(name);
         mySE->GetPOSSE()->SendSlimUpdate();
