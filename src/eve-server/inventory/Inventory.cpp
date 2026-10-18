@@ -1050,8 +1050,8 @@ bool Inventory::ValidateAddItem(EVEItemFlags flag, InventoryItemRef iRef) const
             sItemFactory.UnsetUsingClient();
             if (IsCargoHoldFlag(flag))
                 throw UserError ("NotEnoughCargoSpace")
-                        .AddAmount ("volume", volume)
-                        .AddAmount ("available", capacity);
+                        .AddFormatValue ("volume", new PyFloat (volume))
+                        .AddFormatValue ("available", new PyFloat (capacity));
             else if (flag == flagShipHangar)
                 throw UserError ("NotEnoughCargoSpaceFor1Unit")
                         .AddAmount ("volume", volume)
@@ -1094,12 +1094,12 @@ bool Inventory::ValidateAddItem(EVEItemFlags flag, InventoryItemRef iRef) const
     if (totalVolume > capacity) {
         if (IsSpecialHoldFlag(flag))
             throw UserError ("NotEnoughSpecialBaySpace")
-                    .AddAmount ("volume", totalVolume)
-                    .AddAmount ("available", capacity);
+                    .AddFormatValue ("volume", new PyFloat (totalVolume))
+                    .AddFormatValue ("available", new PyFloat (capacity));
         else if (flag == flagDroneBay)
             throw UserError ("NotEnoughDroneBaySpace")
-                    .AddAmount ("volume", totalVolume)
-                    .AddAmount ("available", capacity);
+                    .AddFormatValue ("volume", new PyFloat (totalVolume))
+                    .AddFormatValue ("available", new PyFloat (capacity));
         else if (IsHangarFlag(flag))
             throw UserError ("NotEnoughCargoSpaceOverload")
                     .AddAmount ("volume", totalVolume)
@@ -1108,8 +1108,8 @@ bool Inventory::ValidateAddItem(EVEItemFlags flag, InventoryItemRef iRef) const
                     .AddAmount ("used", GetStoredVolume (flag));
         else if (IsCargoHoldFlag(flag))
             throw UserError ("NotEnoughCargoSpace")
-                    .AddAmount ("volume", totalVolume)
-                    .AddAmount ("available", capacity);
+                    .AddFormatValue ("volume", new PyFloat (totalVolume))
+                    .AddFormatValue ("available", new PyFloat (capacity));
         else
             throw UserError ("NoSpaceForThat")
                     .AddAmount ("volume", totalVolume)
