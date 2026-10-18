@@ -335,9 +335,11 @@ namespace {
         return bad;
     }
 
-    /* per node and activity:  the most and the mean of its jobs on lines, against the sim lines its stations count and
-     *  the counted lines serving its shortfall, and the bookings refused.  one '[info] lines' row each (sweep.py keeps them) */
-    void PrintLineUse(LineCapacity& cap, int64_t now)
+    /* per node and activity:  the most and the mean of its jobs on lines, against the lines it can book (its stations'
+     *  sim lines, all of them, and the counted lines serving its shortfall), what of the stations' it counts (what earlier
+     *  nodes counted left out), and the Free calls that found no line with slots left and the refused bookings.  one
+     *  '[info] lines' row each (sweep.py keeps them) */
+    void PrintLineUse(LineCapacity& cap)
     {
         for (auto id : cap.NodeIDs()) {
             const LineCapacity::NodeLines* n(cap.Node(id));
@@ -345,15 +347,16 @@ namespace {
                 continue;
             for (uint8_t k = 0; k < LineKind::Count; ++k) {
                 const LineCapacity::KindStats& st(n->stats[k]);
-                double booked(n->choice.have[k] + n->virtualLines[k]);
-                std::printf("  [info] lines node %u %s:  peak %u / %.0f (%.2f), mean %.1f;  stations %u, sim lines %.0f, counted %u (peak %u);"
-                            "  need %.1f, wanted %.1f;  refused %llu\n", id, LineKind::Name(k), st.peak, booked,
-                            (booked > 0.0) ? st.peak / booked : 0.0, st.Mean(), n->choice.stations[k], n->choice.have[k],
-                            n->virtualLines[k], st.virtualPeak, n->choice.need[k], n->choice.wanted[k],
-                            (unsigned long long)st.reserveShort);
+                double lines(n->virtualLines[k]);
+                for (auto i : n->choice.chosen)
+                    lines += n->list[i].simCap[k];
+                std::printf("  [info] lines node %u %s:  peak %u / %.0f (%.2f), mean %.1f;  stations %u, sim lines %.0f (counted for it %.0f),"
+                            " counted %u (peak %u);  need %.1f, wanted %.1f;  no line %llu, refused %llu\n", id, LineKind::Name(k), st.peak,
+                            lines, (lines > 0.0) ? st.peak / lines : 0.0, st.Mean(), n->choice.stations[k], lines - n->virtualLines[k],
+                            n->choice.have[k], n->virtualLines[k], st.virtualPeak, n->choice.need[k], n->choice.wanted[k],
+                            (unsigned long long)st.freeShort, (unsigned long long)st.reserveShort);
             }
         }
-        (void)now;
     }
 
     RunResult Run(const StaticData& data, Params p, uint64_t seed, const Options& opt, const std::vector<ShockSpec>& shocks)
@@ -821,7 +824,7 @@ namespace {
         res.liveOrders = world.LiveOrders();
         // phase 5:  what each node held of its lines (the export's real stations)
         if (opt.stationLines and !data.lineStations.empty())
-            PrintLineUse(*lines.Capacity(), 0);
+            PrintLineUse(*lines.Capacity());
         if (!opt.exportCsv.empty())
             world.ExportCsv(opt.exportCsv);
         if (writeHistory) {
@@ -982,7 +985,7 @@ int HarnessMain(int argc, char** argv)
         world.Build(StartTime);
         for (auto id : lines.Capacity()->NodeIDs())
             std::printf("%s", lines.Capacity()->NodeDetail(id, StartTime).c_str());
-        PrintLineUse(*lines.Capacity(), StartTime);
+        PrintLineUse(*lines.Capacity());
         return 0;
     }
     if (opt.actors)

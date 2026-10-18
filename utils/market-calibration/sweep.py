@@ -139,11 +139,12 @@ def parse_log(phase, path):
             continue
         if '[info] lines node ' in line:
             # phase 5:  a node's lines, the most it held against what it books (not a check;  not scored)
-            m = re.search(r'lines node (\d+) (\w+):  peak \d+ / \d+ \(%s\).*refused (\d+)' % NUM, line)
+            m = re.search(r'lines node (\d+) (\w+):  peak \d+ / \d+ \(%s\).*no line (\d+), refused (\d+)' % NUM, line)
             if m:
                 key = 'lines.%s.%s' % (m.group(1), m.group(2)[:3])
                 metrics[key + '.peak_share'] = max(metrics.get(key + '.peak_share', 0.0), float(m.group(3)))
-                metrics[key + '.refused'] = metrics.get(key + '.refused', 0.0) + float(m.group(4))
+                metrics[key + '.no_line'] = metrics.get(key + '.no_line', 0.0) + float(m.group(4))
+                metrics[key + '.refused'] = metrics.get(key + '.refused', 0.0) + float(m.group(5))
             continue
         m = RE_CHECK.match(line)
         if not m:
