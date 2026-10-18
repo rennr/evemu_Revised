@@ -1,0 +1,20 @@
+# eve-market-sim --static export.json --cal-ratios (real export with lineStations, 2026-10-17)
+[cal] T1 charges 1.099 (184 types);  PLAN 4.1 1.18
+[cal] T1 drones 1.063 (48 types);  PLAN 4.1 1.15
+[cal] T1 modules 1.062 (499 types);  PLAN 4.1 0.97
+[cal] T1 ships 1.087 (84 types);  PLAN 4.1 1.24
+[cal] T2 charges 2.775 over 74 cells at the first hub;  all 100 types 1.866;  PLAN 4.1 2.26
+[cal] T2 components 1.205 over 63 cells at the first hub;  all 123 types 1.208;  PLAN 4.1 1.28
+[cal] T2 drones 2.426 over 16 cells at the first hub;  all 23 types 1.663;  PLAN 4.1 2.06
+[cal] T2 modules 2.792 over 402 cells at the first hub;  all 468 types 2.160;  PLAN 4.1 2.73
+[cal] T2 ships 1.553 over 52 cells at the first hub;  all 89 types 1.338;  PLAN 4.1 1.44
+# eve-market-sim --synthetic --cal-ratios
+[cal] T1 charges 1.200 (40 types);  PLAN 4.1 1.18
+[cal] T1 drones 1.115 (15 types);  PLAN 4.1 1.15
+[cal] T1 modules 0.952 (120 types);  PLAN 4.1 0.97
+[cal] T1 ships 1.112 (47 types);  PLAN 4.1 1.24
+[cal] T2 charges:  none made at the first hub;  all 0 types 0.000;  PLAN 4.1 2.26
+[cal] T2 components 1.187 over 20 cells at the first hub;  all 20 types 1.187;  PLAN 4.1 1.28
+[cal] T2 drones:  none made at the first hub;  all 0 types 0.000;  PLAN 4.1 2.06
+[cal] T2 modules 2.646 over 50 cells at the first hub;  all 50 types 2.646;  PLAN 4.1 2.73
+[cal] T2 ships 1.425 over 12 cells at the first hub;  all 12 types 1.425;  PLAN 4.1 1.44
