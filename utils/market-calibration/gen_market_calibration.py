@@ -214,15 +214,18 @@ HAUL_GROUPS = (28, 380, 513)        # industrials, transport ships, freighters: 
 
 
 def logistics_json(st, rows):
-    """the market sim's phase 4 logistics (the harness snapshot):  k-space (systemID, security, regionID), its jumps
+    """the market sim's phase 4 logistics (the harness snapshot):  k-space (systemID, security, regionID, constellationID), its jumps
     (each once), the npc stations with a refinery (stationID, systemID, regionID, efficiency, take), the security bands
     each ore group's belts are in (bit 0 high-sec >= 0.45, 1 low-sec, 2 null-sec;  roidDistribution per securityClass),
     the hauling hulls' cargo holds and the regional node stations MarketSimDB::AutoRegionalStations picks (a high/low-sec
-    region with 1% of the isk:  in its system with the most stations, the station with the most assembly lines)"""
+    region with 1% of the isk:  in its system with the most stations, the station with the most assembly lines) and the
+    stations with lines the sim may use (phase 5, line_stations)"""
     systems = {}
+    constellations = {}
     for r in serverdata.load_synced('mapSolarSystems').rows:
         if r['regionID'] < 11000000:
             systems[r['solarSystemID']] = (float(r['security']), r['regionID'], r['securityClass'])
+            constellations[r['solarSystemID']] = r['constellationID']
     jumps = sorted(set((min(r['fromSolarSystemID'], r['toSolarSystemID']), max(r['fromSolarSystemID'], r['toSolarSystemID']))
                        for r in serverdata.load_synced('mapSolarSystemJumps').rows
                        if r['fromSolarSystemID'] in systems and r['toSolarSystemID'] in systems))
@@ -255,9 +258,41 @@ def logistics_json(st, rows):
         top = sorted(per.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
         best = sorted((r['stationID'] for r in sta if r['solarSystemID'] == top), key=lambda sid: (-lines[sid], sid))[0]
         regional.append([region, best])
-    return {'systems': [[sid, sec, reg] for sid, (sec, reg, _) in sorted(systems.items())],
+    return {'systems': [[sid, sec, reg, constellations[sid]] for sid, (sec, reg, _) in sorted(systems.items())],
             'jumps': [list(j) for j in jumps], 'stations': [list(s) for s in stations],
-            'oreBands': dict((str(g), b) for g, b in sorted(bands.items())), 'cargo': cargo, 'regional': regional}
+            'oreBands': dict((str(g), b) for g, b in sorted(bands.items())), 'cargo': cargo, 'regional': regional,
+            'lineStations': line_stations(sta, systems)}
+
+
+def line_stations(sta, systems):
+    """the market sim's phase 5 node stations (the harness snapshot):  every k-space npc station with lines an npc corp may
+    use, as FactoryDB::SelectLinesForSim filters them (the station owner's lines;  restrictionMask bits 4 corp and 8
+    alliance unset;  bit 2 standing only with minimumStanding <= 0;  bit 1 security only with the limits around 0), as
+    [stationID, systemID, constellationID, regionID, manufacturing lines, invention lines, has a refinery]"""
+    npc = set(r['corporationID'] for r in serverdata.load_synced('crpNPCCorporations').rows)
+    by_id = dict((r['stationID'], r) for r in sta if r['solarSystemID'] in systems)
+    counts = collections.defaultdict(lambda: [0, 0])
+
+    def num(v):
+        return float(v) if v is not None else 0.0
+    for r in serverdata.load_synced('ramAssemblyLines').rows:
+        if r['activityID'] not in (1, 8):
+            continue
+        st = by_id.get(r['containerID'])
+        if st is None or r['ownerID'] != st['corporationID'] or r['ownerID'] not in npc:
+            continue
+        mask = int(r['restrictionMask'] or 0)
+        if mask & (4 | 8):
+            continue
+        if mask & 2 and num(r['minimumStanding']) > 0:
+            continue
+        if mask & 1 and not (num(r['minimumCharSecurity']) <= 0 and num(r['maximumCharSecurity']) >= 0
+                             and num(r['minimumCorpSecurity']) <= 0 and num(r['maximumCorpSecurity']) >= 0):
+            continue
+        counts[st['stationID']][0 if r['activityID'] == 1 else 1] += 1
+    return [[sid, by_id[sid]['solarSystemID'], by_id[sid]['constellationID'], by_id[sid]['regionID'], c[0], c[1],
+             1 if num(by_id[sid]['reprocessingEfficiency']) > 0 else 0]
+            for sid, c in sorted(counts.items())]
 
 
 def chains_json(st, cal):
