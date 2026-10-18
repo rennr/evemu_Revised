@@ -85,6 +85,7 @@ namespace Market {
         int64 time;
         double price;        // minimum price filter when querying
         double maxPrice;     // maximum price filter when querying (0 = none)
+        uint32 beforeID;     // paging:  only transactions older than this one (0 = from the newest)
     };
 
     // used to save order data

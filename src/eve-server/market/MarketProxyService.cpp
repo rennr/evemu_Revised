@@ -72,6 +72,8 @@ MarketProxyService::MarketProxyService(EVEServiceManager& mgr) :
     this->Add("CancelCharOrder", &MarketProxyService::CancelCharOrder);
     this->Add("CharGetNewTransactions", &MarketProxyService::CharGetNewTransactions);
     this->Add("CorpGetNewTransactions", &MarketProxyService::CorpGetNewTransactions);
+    this->Add("CharGetTransactions", &MarketProxyService::CharGetTransactions);
+    this->Add("CorpGetTransactions", &MarketProxyService::CorpGetTransactions);
     this->Add("GetCorporationOrders", &MarketProxyService::GetCorporationOrders);
 }
 
@@ -149,6 +151,46 @@ PyResult MarketProxyService::CorpGetNewTransactions(PyCallArgs& call, PyRep* sel
     data.time = fromDate->IsNone() ? 0 : PyRep::IntegerValue(fromDate);
     data.accountKey = accountKey->IsNone() ? (uint32)Account::KeyType::Cash : PyRep::IntegerValueU32(accountKey);
     data.memberID = memberID->IsNone() ? 0 : PyRep::IntegerValueU32(memberID);
+    return MarketDB::GetTransactions(call.client->GetCorporationID(), data, true);
+}
+
+/* the wallet's "next page":  the same filters as Char/CorpGetNewTransactions, older than the last transaction shown
+ *    CharGetTransactions(lastTran.transactionID, sellBuy, typeID, clientID, quantity, fromDate, maxPrice, minPrice)
+ *    CorpGetTransactions(lastTran.transactionID, sellBuy, typeID, clientID, quantity, fromDate, maxPrice, minPrice, accountKey, memberID)
+ * the client calls len() on the reply, so an empty page is an empty rowset, never None
+ */
+PyResult MarketProxyService::CharGetTransactions(PyCallArgs &call, PyInt* fromID, PyRep* sellBuy, PyRep* typeID, PyRep* clientID, PyRep* quantity, PyRep* fromDate, PyRep* maxPrice, PyRep* minPrice) {
+    Market::TxData data = Market::TxData();
+
+    data.clientID = clientID->IsNone() ? 0 : PyRep::IntegerValueU32(clientID);
+    data.isBuy = sellBuy->IsNone() ? -1 : PyRep::IntegerValueU32(sellBuy);
+    data.price = minPrice->IsNone() ? 0 : PyRep::FloatValue(minPrice);
+    data.maxPrice = maxPrice->IsNone() ? 0 : PyRep::FloatValue(maxPrice);
+    data.quantity = quantity->IsNone() ? 0 : PyRep::IntegerValueU32(quantity);
+    data.typeID = typeID->IsNone() ? 0 : PyRep::IntegerValueU32(typeID);
+    data.time = fromDate->IsNone() ? 0 : PyRep::IntegerValue(fromDate);
+    data.accountKey = Account::KeyType::Cash;
+    data.beforeID = fromID->value() > 0 ? fromID->value() : 0;
+
+    return MarketDB::GetTransactions(call.client->GetCharacterID(), data, false);
+}
+
+PyResult MarketProxyService::CorpGetTransactions(PyCallArgs& call, PyInt* fromID, PyRep* sellBuy, PyRep* typeID, PyRep* clientID, PyRep* quantity, PyRep* fromDate, PyRep* maxPrice, PyRep* minPrice, PyRep* accountKey, PyRep* memberID)
+{
+    if ((call.client->GetCorpRole() & (Corp::Role::Accountant | Corp::Role::JuniorAccountant)) == 0)
+        throw UserError("CrpAccessDenied").AddFormatValue("reason", new PyString("You do not have the role Accountant or Junior Accountant."));
+
+    Market::TxData data = Market::TxData();
+    data.clientID = clientID->IsNone() ? 0 : PyRep::IntegerValueU32(clientID);
+    data.isBuy = sellBuy->IsNone() ? -1 : PyRep::IntegerValueU32(sellBuy);
+    data.price = minPrice->IsNone() ? 0 : PyRep::FloatValue(minPrice);
+    data.maxPrice = maxPrice->IsNone() ? 0 : PyRep::FloatValue(maxPrice);
+    data.quantity = quantity->IsNone() ? 0 : PyRep::IntegerValueU32(quantity);
+    data.typeID = typeID->IsNone() ? 0 : PyRep::IntegerValueU32(typeID);
+    data.time = fromDate->IsNone() ? 0 : PyRep::IntegerValue(fromDate);
+    data.accountKey = accountKey->IsNone() ? (uint32)Account::KeyType::Cash : PyRep::IntegerValueU32(accountKey);
+    data.memberID = memberID->IsNone() ? 0 : PyRep::IntegerValueU32(memberID);
+    data.beforeID = fromID->value() > 0 ? fromID->value() : 0;
     return MarketDB::GetTransactions(call.client->GetCorporationID(), data, true);
 }
 

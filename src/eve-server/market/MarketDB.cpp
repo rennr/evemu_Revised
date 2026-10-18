@@ -395,6 +395,10 @@ PyRep *MarketDB::GetTransactions(uint32 ownerID, Market::TxData& data, bool isCo
         snprintf(buf, sizeof(buf), " AND price<=%.2f", data.maxPrice);
         filter += buf;
     }
+    if (data.beforeID) {
+        filter += " AND transactionID<";
+        filter += std::to_string(data.beforeID);
+    }
     if (isCorp) {
         filter += " AND keyID=";
         filter += std::to_string(data.accountKey);
@@ -414,7 +418,7 @@ PyRep *MarketDB::GetTransactions(uint32 ownerID, Market::TxData& data, bool isCo
         " transactionType, clientID, regionID, stationID, corpTransaction, characterID"
         " FROM mktTransactions "
         " WHERE ownerID=%u AND corpTransaction=%u AND quantity>=%u AND price>=%.2f AND transactionDate>=%lli%s"
-        " ORDER BY transactionDate DESC LIMIT 1000",
+        " ORDER BY transactionDate DESC, transactionID DESC LIMIT 1000",
         ownerID,
         isCorp ? 1 : 0,
         data.quantity,
