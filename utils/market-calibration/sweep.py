@@ -19,6 +19,13 @@ with its failed checks and figures.  Keys are the
 harness's scenario keys:  the <marketSim> names (doc/code_and_design_notes/planning/market-sim/TUNING.md) plus
 HalfSpreadScale, StockElasticityScale and ElasticityScale (the calibration's per type parameters, scaled).
 
+The price / bill checks are judged and scored against the calibration's own figures (owner, 2026-10-17):  T1 against its
+overall median (p3.t1cal.*, +-10%), T2 and components against its median over the same cells the sim makes (p6.t2cal.*,
++-20%);  PLAN 4.1's ratios are recorded (p3.t1.*, p6.t2.*), not scored.  The phase 3 mineral shock is set aside:  the
+harness doesn't run it unless --mineral-shock-at (then its logs are set%03d_p3m_s%d.log, phase '3m'), and a failed
+mineral shock check of an older log counts in 'aside_fails', not 'fails'.  Older phase 6 logs judged T2 against PLAN
+4.1:  their T2 checks keep that result and are marked old-target in runs.csv (rerun them to rescore).
+
 Stdlib only.  The draw is deterministic (--draw-seed).
 """
 import argparse
@@ -64,9 +71,13 @@ PHASES = {
     '6': (['--phase6'], 100),
 }
 
-# the checks the owner decides on (PLAN 4.1's T1 targets against the calibration's own figures):  reported, and
-#  scored apart ('fails_excl_t1')
-T1_TARGET_CHECKS = ('3:T1 modules', '3:T1 ships')
+# the checks the owner set aside (2026-10-17;  prefixes):  the phase 3 mineral shock.  reported, and counted apart
+#  ('aside_fails'), unless --mineral-shock-at
+SET_ASIDE = ('3:mineral shock',)
+
+
+def set_aside(name):
+    return name.startswith(SET_ASIDE)
 
 
 def latin_hypercube(space, n, rng):
@@ -122,7 +133,8 @@ def check_name(phase, text):
 
 
 def parse_log(phase, path):
-    """the checks (name -> passed) and the metrics (name -> value) of one run;  None if the log is incomplete"""
+    """the checks (name -> passed), the metrics (name -> value) and the checks judged on an older target (names) of one
+    run;  None if the log is incomplete"""
     try:
         with open(path, encoding='utf-8', errors='replace') as f:
             text = f.read()
@@ -130,12 +142,23 @@ def parse_log(phase, path):
         return None
     if not RE_DONE.search(text):
         return None
-    checks, metrics = {}, {}
+    checks, metrics, old_target = {}, {}, set()
     for line in text.splitlines():
         if phase == '2' and '[info] (d) without the cells calibrated at the' in line:
             # (d) without the cells at the calibration's volatility floor (not a check;  not scored)
             for cat, ratio in re.findall(r' (\w+) x([\d.]+) \(\d+\)', line):
                 metrics['p2.noise_off_floor.' + cat] = float(ratio)
+            continue
+        if phase == '6' and 'chain goods hauled out of stock-model stand-ins' in line:
+            # HaulChainFallbacks on, or no logistics:  what the gate would stop (not a check;  not scored)
+            m = re.search(r':  %s units of' % NUM, line)
+            if m:
+                metrics['p6.standin_chain_units'] = float(m.group(1))
+            continue
+        if phase == '6' and "other classes' stand-ins" in line:
+            m = re.search(r'exported %s units' % NUM, line)
+            if m:
+                metrics['p6.standin_other_units'] = float(m.group(1))
             continue
         if '[info] lines node ' in line:
             # phase 5:  a node's lines, the most it held against what it books (not a check;  not scored)
@@ -151,6 +174,41 @@ def parse_log(phase, path):
             continue
         ok, body = m.group(1) == 'PASS', m.group(2)
         name = check_name(phase, body)
+        if phase == '3':
+            m = re.match(r"T1 (\w+):  median price / bill %s at steady state;  the calibration's %s \(x%s.*PLAN 4.1 %s \(x%s" % (NUM, NUM, NUM, NUM, NUM), body)
+            if m:
+                metrics['p3.t1cal.' + m.group(1)] = float(m.group(4))
+                metrics['p3.t1.cal.' + m.group(1)] = float(m.group(3))
+                metrics['p3.t1.' + m.group(1)] = float(m.group(6))
+            else:
+                # an older log (judged against PLAN 4.1):  re-judged against the calibration's figure
+                m = re.match(r"T1 (\w+):  median price / bill %s at steady state;  PLAN 4.1 %s \(x%s.*the calibration's %s" % (NUM, NUM, NUM, NUM), body)
+                if m:
+                    metrics['p3.t1.' + m.group(1)] = float(m.group(4))
+                    cal = float(m.group(5))
+                    metrics['p3.t1.cal.' + m.group(1)] = cal
+                    if cal > 0:
+                        metrics['p3.t1cal.' + m.group(1)] = float(m.group(2)) / cal
+                        ok = abs(float(m.group(2)) / cal - 1.0) <= 0.10
+        elif phase == '6':
+            m = re.match(r"T2 (\w+):  median price / bill %s .*the calibration's %s \(x%s.*all such types %s;  PLAN 4.1 %s \(x%s" % (NUM, NUM, NUM, NUM, NUM, NUM), body)
+            if m:
+                metrics['p6.t2cal.' + m.group(1)] = float(m.group(4))
+                metrics['p6.t2.cal.' + m.group(1)] = float(m.group(3))
+                metrics['p6.t2.calall.' + m.group(1)] = float(m.group(5))
+                metrics['p6.t2.' + m.group(1)] = float(m.group(7))
+            else:
+                # an older log (judged against PLAN 4.1;  'the calibration's' was the all-types median, a biased
+                #  comparator):  its result stays, marked
+                m = re.match(r"T2 (\w+):  median price / bill %s .*PLAN 4.1 %s \(x%s.*the calibration's %s" % (NUM, NUM, NUM, NUM), body)
+                if m:
+                    metrics['p6.t2.' + m.group(1)] = float(m.group(4))
+                    metrics['p6.t2.calall.' + m.group(1)] = float(m.group(5))
+                    old_target.add(name)
+            if body.startswith('no chain good hauled out of a stock-model stand-in'):
+                m = re.search(r'stand-in:  %s units of' % NUM, body)
+                if m:
+                    metrics['p6.standin_chain_units'] = float(m.group(1))
         # a check that repeats (per seed, per region) fails if any instance fails
         checks[name] = checks.get(name, True) and ok
         if phase == '2':
@@ -176,12 +234,6 @@ def parse_log(phase, path):
             m = re.search(r'the Drake peaks at x%s' % NUM, body)
             if m:
                 metrics['p3.drake_peak'] = float(m.group(1))
-            m = re.match(r"T1 (\w+):  median price / bill %s at steady state;  PLAN 4.1 %s \(x%s.*the calibration's %s" % (NUM, NUM, NUM, NUM), body)
-            if m:
-                metrics['p3.t1.' + m.group(1)] = float(m.group(4))
-                cal = float(m.group(5))
-                if cal > 0:
-                    metrics['p3.t1cal.' + m.group(1)] = float(m.group(2)) / cal
         elif phase == '4':
             m = re.search(r'region (\d+) / the Forge over \d+ types:  median %s \(allowed' % NUM, body)
             if m:
@@ -190,9 +242,6 @@ def parse_log(phase, path):
             if m:
                 metrics['p4.route_risk'] = float(m.group(1))
         elif phase == '6':
-            m = re.match(r'T2 (\w+):  median price / bill %s .*PLAN 4.1 %s \(x%s' % (NUM, NUM, NUM), body)
-            if m:
-                metrics['p6.t2.' + m.group(1)] = float(m.group(4))
             m = re.search(r'%s sigma \(allowed 2\)' % NUM, body)
             if m:
                 metrics['p6.invention_z'] = float(m.group(1))
@@ -200,12 +249,13 @@ def parse_log(phase, path):
             if m:
                 metrics['p6.moon_components'] = float(m.group(1))
                 metrics['p6.moon_t2'] = float(m.group(2))
-    return checks, metrics
+    return checks, metrics, old_target
 
 
-def utilisation(name, v):
+def utilisation(name, v, mineral_shock=False):
     """how much of an acceptance test's room a metric uses:  0 on target, 1 at the limit (beyond:  fails).  None:  not
-    scored"""
+    scored (PLAN 4.1's price / bill ratios and the calibration's raw figures;  the mineral shock unless
+    --mineral-shock-at)"""
     if name == 'p2.index_min':
         return max(0.0, (1.0 - v) / 0.2)
     if name == 'p2.index_max':
@@ -220,14 +270,14 @@ def utilisation(name, v):
         return abs(math.log(max(v, 1e-6))) / math.log(2.0)
     # (the dumper always sells up to its cap:  a pass/fail check, not scored)
     if name == 'p3.mineral_peak':
-        return abs(v - 1.4) / 0.25
-    if name.startswith('p3.t1.') or name.startswith('p3.t1cal.'):
+        return abs(v - 1.4) / 0.25 if mineral_shock else None
+    if name.startswith('p3.t1cal.'):
         return abs(v - 1.0) / 0.10
     if name.startswith('p4.median.'):
         return abs(v - 1.025) / 0.055
     if name == 'p4.route_risk':
         return 0.005 / (v - 1.0) if v > 1.0 else 2.0
-    if name.startswith('p6.t2.'):
+    if name.startswith('p6.t2cal.'):
         return abs(v - 1.0) / 0.20
     if name == 'p6.invention_z':
         return abs(v) / 2.0
@@ -303,6 +353,8 @@ def main():
     ap.add_argument('--rescore', action='store_true', help='only read the logs already in --out')
     ap.add_argument('--only', metavar='RUNS_CSV',
                     help='run only the runs a runs.csv lists as missing (set, phase, seed):  resumes a sweep whose logs are gone')
+    ap.add_argument('--mineral-shock-at', action='store_true',
+                    help='run the phase 3 mineral shock and score its checks (set aside by the owner 2026-10-17)')
     a = ap.parse_args()
 
     os.makedirs(a.out, exist_ok=True)
@@ -342,13 +394,17 @@ def main():
             with open(scn, 'w', encoding='utf-8', newline='\n') as f:
                 f.write(body)
         for p in phases:
+            # the phase as runs.csv records it:  '3m' with the mineral shock (its own logs:  cached runs never mix)
+            label = p + ('m' if p == '3' and a.mineral_shock_at else '')
             for seed in range(1, a.seeds + 1):
-                log = os.path.join(a.out, 'set%03d_p%s_s%d.log' % (i, p, seed))
+                log = os.path.join(a.out, 'set%03d_p%s_s%d.log' % (i, label, seed))
                 args = (['--static', a.static] if a.static else ['--synthetic']) + PHASES[p][0]
                 args += ['--days', str(days[p]), '--seed', str(seed), '--scenario', scn]
                 if p == '2':
                     args.append('--no-repeat')
-                jobs.append((i, p, seed, log, args))
+                if label == '3m':
+                    args.append('--mineral-shock-at')
+                jobs.append((i, label, seed, log, args))
     if a.only:
         with open(a.only, newline='', encoding='utf-8') as f:
             todo_keys = set((int(r['set']), r['phase'], int(r['seed'])) for r in csv.DictReader(f) if r['status'] != 'done')
@@ -358,7 +414,7 @@ def main():
             sys.exit('--harness is needed to run (or --rescore)')
         todo = [j for j in jobs if not parse_log_any(j[3])]
         # the long ones first
-        todo.sort(key=lambda j: -days[j[1]] * (2 if j[1] == '2' else 3))
+        todo.sort(key=lambda j: -days[j[1][0]] * (2 if j[1] == '2' else 3))
         print('%d sets, %d runs (%d to do), %d at a time' % (len(sets), len(jobs), len(todo), a.jobs), flush=True)
         t0 = time.time()
         with concurrent.futures.ThreadPoolExecutor(max_workers=a.jobs) as pool:
@@ -377,53 +433,57 @@ def main():
         for (si, p, seed, log, _) in jobs:
             if si != i:
                 continue
-            got = parse_log(p, log)
+            got = parse_log(p[0], log)
             run = {'set': i, 'phase': p, 'seed': seed, 'log': os.path.basename(log)}
             runs.append(run)
             if got is None:
                 run['status'] = 'missing'
                 missing += 1
                 continue
-            c, m = got
+            c, m, old = got
             run['status'] = 'done'
-            run['fails'] = sum(1 for ok in c.values() if not ok)
-            run['failed_checks'] = ' | '.join(sorted(k for k, ok in c.items() if not ok))
+            run['fails'] = sum(1 for k, ok in c.items() if not ok and (a.mineral_shock_at or not set_aside(k)))
+            run['failed_checks'] = ' | '.join(sorted(k + (' (set aside)' if set_aside(k) and not a.mineral_shock_at else '')
+                                                     for k, ok in c.items() if not ok))
+            run['old_target'] = ' | '.join(sorted(old))
             run.update(m)
             for k, ok in c.items():
                 checks.setdefault(k, []).append(ok)
             for k, v in m.items():
                 metrics.setdefault(k, []).append(v)
-                u = utilisation(k, v)
+                u = utilisation(k, v, a.mineral_shock_at)
                 if u is not None:
                     util[k] = max(util.get(k, 0.0), u)
-        fails = sorted(k for k, oks in checks.items() if not all(oks))
-        fails_excl = [k for k in fails if k not in T1_TARGET_CHECKS]
-        # the T1 checks are scored against the calibration's own figures (p3.t1cal.*), not PLAN 4.1's (p3.t1.*)
-        scored = {k: v for k, v in util.items() if not k.startswith('p3.t1.')}
+        failed = sorted(k for k, oks in checks.items() if not all(oks))
+        # the set aside checks count apart (only an older log or --mineral-shock-at has them)
+        fails = [k for k in failed if a.mineral_shock_at or not set_aside(k)]
+        aside = [k for k in failed if k not in fails]
+        # T1 and T2 are scored against the calibration's own figures (p3.t1cal.*, p6.t2cal.*), not PLAN 4.1's
+        scored = {k: v for k, v in util.items() if not k.startswith(('p3.t1.', 'p6.t2.'))}
         worst = max(scored.items(), key=lambda kv: kv[1]) if scored else ('', 0.0)
-        row = {'set': i, 'missing_runs': missing, 'fails': len(fails), 'fails_excl_t1': len(fails_excl),
+        row = {'set': i, 'missing_runs': missing, 'fails': len(fails), 'aside_fails': len(aside),
                'max_u': round(worst[1], 4), 'mean_u': round(sum(scored.values()) / len(scored), 4) if scored else 0.0,
-               'worst': worst[0], 'failed_checks': ' | '.join(fails)}
+               'worst': worst[0], 'failed_checks': ' | '.join(fails + [k + ' (set aside)' for k in aside])}
         row.update({k: s.get(k, '') for k in keys})
         for k, v in metrics.items():
             row[k] = round(sum(v) / len(v), 4)
         all_checks.update(checks)
         all_metrics.update(metrics)
         rows.append(row)
-    rows.sort(key=lambda r: (r['missing_runs'] > 0, r['fails_excl_t1'], r['fails'], r['max_u'], r['mean_u'], r['set']))
+    rows.sort(key=lambda r: (r['missing_runs'] > 0, r['fails'], r['aside_fails'], r['max_u'], r['mean_u'], r['set']))
     for rank, r in enumerate(rows, 1):
         r['rank'] = rank
     metric_cols = sorted(all_metrics)
-    cols = ['rank', 'set'] + keys + ['missing_runs', 'fails_excl_t1', 'fails', 'max_u', 'mean_u', 'worst'] + metric_cols + ['failed_checks']
+    cols = ['rank', 'set'] + keys + ['missing_runs', 'fails', 'aside_fails', 'max_u', 'mean_u', 'worst'] + metric_cols + ['failed_checks']
     with open(os.path.join(a.out, 'sweep.csv'), 'w', newline='', encoding='utf-8') as f:
         w = csv.DictWriter(f, fieldnames=cols, extrasaction='ignore')
         w.writeheader()
         for r in rows:
             w.writerow(r)
 
-    run_metrics = sorted(set(k for r in runs for k in r) - {'set', 'phase', 'seed', 'log', 'status', 'fails', 'failed_checks'})
+    run_metrics = sorted(set(k for r in runs for k in r) - {'set', 'phase', 'seed', 'log', 'status', 'fails', 'failed_checks', 'old_target'})
     with open(os.path.join(a.out, 'runs.csv'), 'w', newline='', encoding='utf-8') as f:
-        w = csv.DictWriter(f, fieldnames=['set', 'phase', 'seed', 'status', 'fails'] + run_metrics + ['failed_checks', 'log'],
+        w = csv.DictWriter(f, fieldnames=['set', 'phase', 'seed', 'status', 'fails'] + run_metrics + ['failed_checks', 'old_target', 'log'],
                            extrasaction='ignore')
         w.writeheader()
         for r in runs:
@@ -434,26 +494,29 @@ def main():
     out.append('market sim sweep:  %d sets, phases %s, %d seed(s), %s' % (len(sets), ','.join(phases), a.seeds,
                                                                          a.static or 'synthetic world'))
     complete = [r for r in rows if r['missing_runs'] == 0]
-    passing = [r for r in complete if r['fails_excl_t1'] == 0]
+    passing = [r for r in complete if r['fails'] == 0]
     out.append('runs finished %d of %d (runs.csv;  run the same command again to do the rest)' % (
         sum(1 for r in runs if r['status'] == 'done'), len(runs)))
-    out.append('complete sets %d;  passing every phase %s acceptance test (PLAN 4.1 T1 targets aside) %d;  all of them %d'
-               % (len(complete), '/'.join(phases), len(passing), sum(1 for r in complete if r['fails'] == 0)))
+    out.append('complete sets %d;  passing every phase %s acceptance test %d (the mineral shock %s, owner 2026-10-17);'
+               '  with the set aside checks too %d'
+               % (len(complete), '/'.join(phases), len(passing), 'run (--mineral-shock-at)' if a.mineral_shock_at else 'set aside',
+                  sum(1 for r in complete if r['fails'] == 0 and r['aside_fails'] == 0)))
     out.append('')
-    out.append('ranked (fails without / with the T1 PLAN 4.1 targets, max and mean use of the tests\' room, worst metric):')
+    out.append('ranked (fails / set aside, max and mean use of the tests\' room, worst metric):')
     for r in rows[:15]:
         out.append('  #%-3d set %-3d  fails %d/%d  max_u %.2f  mean_u %.2f  worst %-22s %s' % (
-            r['rank'], r['set'], r['fails_excl_t1'], r['fails'], r['max_u'], r['mean_u'], r['worst'],
+            r['rank'], r['set'], r['fails'], r['aside_fails'], r['max_u'], r['mean_u'], r['worst'],
             '  '.join('%s=%s' % (k, r[k]) for k in keys)))
     out.append('')
     out.append('checks that failed (sets):')
     for name in sorted(all_checks):
-        bad = [r['set'] for r in complete if name in r['failed_checks'].split(' | ')]
+        tag = name + (' (set aside)' if set_aside(name) and not a.mineral_shock_at else '')
+        bad = [r['set'] for r in complete if tag in r['failed_checks'].split(' | ')]
         if bad:
-            out.append('  %-40s %3d of %d:  %s' % (name, len(bad), len(complete), ' '.join(map(str, bad[:30]))))
+            out.append('  %-40s %3d of %d:  %s' % (tag, len(bad), len(complete), ' '.join(map(str, bad[:30]))))
     out.append('')
     out.append('rank correlation (Spearman) of each key with the scores and the borderline metrics:')
-    focus = ['max_u', 'mean_u', 'fails_excl_t1'] + [m for m in metric_cols if m.startswith(('p2.noise.', 'p2.noise_off', 'p6.t2.', 'p6.invention', 'p3.t1', 'p3.mineral', 'p4.route', 'p2.index_max', 'p2.money_max'))]
+    focus = ['max_u', 'mean_u', 'fails'] + [m for m in metric_cols if m.startswith(('p2.noise.', 'p2.noise_off', 'p6.t2cal', 'p6.t2.cal.', 'p6.t2.', 'p6.invention', 'p3.t1cal', 'p3.t1', 'p3.mineral', 'p4.route', 'p2.index_max', 'p2.money_max'))]
     out.append('  %-24s' % 'metric' + ''.join('%9s' % k[:8] for k in keys))
     for m in focus:
         line = '  %-24s' % m[:24]
