@@ -29,6 +29,15 @@
 
 #include "character/PaperDollDB.h"
 
+bool PaperDollDB::HasAvatar(uint32 charID) const {
+    DBQueryResult res;
+    if (!sDatabase.RunQuery(res, "SELECT 1 FROM avatars WHERE charID=%u LIMIT 1", charID)) {
+        _log(DATABASE__ERROR, "Error in HasAvatar query: %s", res.error.c_str());
+        return false;
+    }
+    return res.GetRowCount() > 0;
+}
+
 PyRep* PaperDollDB::GetPaperDollAvatar(uint32 charID) const {
 
     DBQueryResult res;

@@ -72,7 +72,10 @@ PaperDollService::PaperDollService() :
 PyResult PaperDollService::GetPaperDollData(PyCallArgs &call, PyInt* characterID) {
     call.Dump(PLAYER__CALL_DUMP);
     // this is called when viewing full body of a character (any character:  info window, character creation).
-    //  the client applies it like its own doll (character.py ApplyDBRowToDoll), so it is the same KeyVal
+    //  the client applies it like its own doll (character.py ApplyDBRowToDoll), so it is the same KeyVal.
+    //  None for a character without one (npc agents):  the client reports CharacterHasNoDNA (preview.py)
+    if (!m_db.HasAvatar(characterID->value()))
+        return PyStatic.NewNone();
     return GetDollData(characterID->value());
 }
 

@@ -32,6 +32,7 @@
 class PaperDollDB: public ServiceDB
 {
 public:
+    bool HasAvatar(uint32 charID) const;
     PyRep* GetPaperDollAvatar(uint32 charID) const;
     PyRep* GetPaperDollAvatarColors(uint32 charID) const;
     PyRep* GetPaperDollPortraitData(uint32 charID) const;
