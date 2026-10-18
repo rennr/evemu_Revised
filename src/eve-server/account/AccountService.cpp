@@ -24,6 +24,7 @@
     Rewrite:    Allan
 */
 
+#include <cmath>
 #include <boost/algorithm/string.hpp>
 #include "eve-server.h"
 
@@ -359,13 +360,37 @@ PyResult AccountService::GiveCash(PyCallArgs &call, PyInt* toID, PyFloat* amount
         reasonStr += reason;
     }
 
+    /* the Give Money window (wallet.py) sends toAccountKey:  None for ISK, accountingKeyAUR for an AUR transfer (both
+     *  wallets AUR), or the chosen division when giving to its own corp.  the global config's disableTransferAUR isn't set
+     */
+    uint16 fromKey(Account::KeyType::Cash), toKey(Account::KeyType::Cash);
+    auto itr = call.byname.find("toAccountKey");
+    if ((itr != call.byname.end()) and (itr->second != nullptr) and !itr->second->IsNone())
+        toKey = PyRep::IntegerValueU32(itr->second);
+
+    if (IsAUR(toKey)) {
+        // characters only (the client refuses corps with the same message)
+        if (!IsCharacterID(toID->value()))
+            throw UserError ("AurToOrFromCorp");
+        // the window takes whole AUR
+        if ((amount->value() < 1) or (amount->value() != std::floor(amount->value())))
+            throw CustomError ("Aurum can only be given in whole units.");
+        fromKey = toKey = Account::KeyType::AUR;
+    } else if (!IsPlayerCorp(toID->value()) or ((uint32)toID->value() != call.client->GetCorporationID())
+            or (toKey < Account::KeyType::Cash) or (toKey > Account::KeyType::Cash7)) {
+        toKey = Account::KeyType::Cash;
+    }
+
     TransferFunds(
         call.client->GetCharacterID(),
         toID->value(),
         amount->value(),
         reasonStr.c_str(),
         Journal::EntryType::PlayerDonation,
-        call.client->GetCharacterID()
+        call.client->GetCharacterID(),
+        fromKey,
+        toKey,
+        call.client
     );
 
     return nullptr;

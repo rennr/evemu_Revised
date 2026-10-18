@@ -427,6 +427,11 @@ bool Character::AlterBalance(double amount, uint8 type) {
 
     // amount can be negative.  check for funds to remove, if applicable
     if ((balance(type) + amount) < 0) {
+        // an AUR wallet has its own message (the NeX store and AUR transfers)
+        if (type == Account::CreditType::AURUM)
+            throw UserError ("NotEnoughAurum")
+                    .AddFormatValue ("amount", new PyLong ((int64)-amount))
+                    .AddFormatValue ("balance", new PyLong ((int64)balance (type)));
         throw UserError ("NotEnoughMoney")
                 .AddISK ("amount", -amount)
                 .AddISK ("balance", balance (type));
