@@ -490,6 +490,51 @@ void World::ChainSupply()
     }
 }
 
+namespace {
+    enum : uint8_t { MadeChain = 0x01, MadeAny = 0x02 };
+}
+
+void World::MarkMadeTypes()
+{
+    /* the types a real chain makes at some node (for ChainStandIn:  invented, harvested, reacted, extracted, processed, or
+     *  manufactured to a chain bill) and the types anything but the stock model's producer makes, mines or refines (for the
+     *  stand-in counter;  loot is a faucet, not a maker) */
+    m_madeType.assign(65536, 0);
+    m_standInExports.clear();
+    for (auto& c : m_cells) {
+        uint8_t& m(m_madeType[c.typeID]);
+        switch (c.supply) {
+            case Supply::Invented:
+            case Supply::Harvested:
+            case Supply::Reacted:
+            case Supply::Extracted:
+            case Supply::Processed:
+                m |= MadeChain | MadeAny;
+                break;
+            case Supply::Manufactured:
+                m |= MadeAny;
+                if (c.bill != 0)
+                    m |= MadeChain;
+                break;
+            case Supply::Mined:
+            case Supply::Refined:
+                m |= MadeAny;
+                break;
+        }
+    }
+}
+
+bool World::ChainStandIn(const Cell& c) const
+{
+    return (c.supply == Supply::Abstract) and ChainClass(c.simClass) and (c.typeID < m_madeType.size())
+           and ((m_madeType[c.typeID] & MadeChain) != 0);
+}
+
+bool World::StandIn(const Cell& c) const
+{
+    return (c.supply == Supply::Abstract) and (c.typeID < m_madeType.size()) and (m_madeType[c.typeID] != 0);
+}
+
 void World::ChainDerived(std::map<uint64_t, double>& derived)
 {
     /* what the node's industry needs of each type at reference (PLAN 6.3 derived demand):  a cell made by the sim makes its

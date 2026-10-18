@@ -329,6 +329,8 @@ void World::BuildActors(int64_t /*now*/)
     for (auto& c : m_cells)
         if (((c.supply == Supply::Mined) or (c.supply == Supply::Refined)) and (m_nodeActors[c.nodeID - 1].miner == 0))
             c.supply = Supply::Abstract;
+    // the types made somewhere (the chain stand-ins:  hub traders don't buy from them, SimHaulers.cpp)
+    MarkMadeTypes();
 
     /* the final demand consumers still buy apart from their losses (PLAN 6.3):  ore none (it is refined), minerals what
      *  the node's T1 building doesn't explain (T2, capitals, ... in the stock model), everything else dc less the losses.

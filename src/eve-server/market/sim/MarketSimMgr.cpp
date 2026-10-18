@@ -154,6 +154,7 @@ void MarketSimMgr::ReadParams()
     p.haulerMaxTripValue = std::max(1e6, c.HaulerMaxTripValue);
     p.haulerCargoFactor = std::max(1.0, c.HaulerCargoFactor);
     p.haulerMargin = std::max(0.0, c.HaulerMargin);
+    p.haulChainFallbacks = c.HaulChainFallbacks;
     p.remoteSupplyElasticity = std::max(0.0, c.RemoteSupplyElasticity);
     // phase 6:  the advanced chains, at the server's own invention chance and time multipliers (RamMethods)
     p.enableT2 = c.EnableT2;
@@ -170,6 +171,7 @@ void MarketSimMgr::ReadParams()
 bool MarketSimMgr::LoadStatic(std::string& why)
 {
     m_static = MktSim::StaticData();
+    m_static.regionRatioMinActive = (float)std::max(0.0, sConfig.marketSim.RegionRatioMinActive);
     // nodes:  the hubs, then the regional nodes
     std::vector<uint32> stations(ParseList(sConfig.marketSim.Hubs));
     m_hubs.clear();

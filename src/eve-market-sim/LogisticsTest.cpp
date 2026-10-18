@@ -2,7 +2,8 @@
  /**
   * @name LogisticsTest.cpp
   *   unit tests of the market sim's logistics (SimLogistics, SimHaulers.cpp):  the risk formulas, routes on a small map,
-  *   a short world run with haulers and remote miners, and the shipments' reload after a restart
+  *   a short world run with haulers and remote miners, the shipments' reload after a restart, and the chain stand-ins'
+  *   gate (HaulChainFallbacks)
   *
   * @date:          15Oct26
   *
@@ -15,6 +16,7 @@
 #include "HarnessData.h"
 #include "HarnessMarket.h"
 #include "TestCheck.h"
+#include "market/sim/SimChains.h"
 #include "market/sim/SimLedger.h"
 #include "market/sim/SimLogistics.h"
 #include "market/sim/SimWorld.h"
@@ -207,5 +209,61 @@ int LogisticsTest()
     T_CHECK_EQ(carried, held);
     T_CHECK(onTheWay > 0);
     (void)now;
+
+    /* chain stand-ins (PLAN-logistics-chains-fix.md F1):  a reaction product the second hub reacts, priced there at 0.15 of
+     *  the Forge on 1% of the days (a thin ratio, RegionRatioMinActive 0:  not shrunk), fails its cost test there and stays
+     *  with the stock model while the first hub reacts it.  hub traders buy none of it there;  with HaulChainFallbacks they
+     *  do (the mechanism the gate stops is still there) */
+    {
+        StaticData sd;
+        MktHarness::BuildSynthetic(sd, 7, 0.25);
+        sd.regionRatioMinActive = 0.0f;
+        uint32_t n1(sd.nodes[0].nodeID), n2(sd.nodes[1].nodeID);
+        uint16_t product(0);
+        {
+            World probe(sd, prm, market);
+            probe.Build(t0);
+            double best(0.0);
+            for (auto& c : probe.Cells()) {
+                if ((c.nodeID != n2) or (c.supply != Supply::Reacted) or (sd.Type(c.typeID)->groupID == Chains::Group::MoonMaterials))
+                    continue;
+                Cell* first(probe.FindCell(n1, c.typeID));
+                if ((first != nullptr) and (first->supply == Supply::Reacted) and (c.d0 * c.refLocal > best)) {
+                    best = c.d0 * c.refLocal;
+                    product = c.typeID;
+                }
+            }
+        }
+        T_CHECK(product != 0);
+        RegionTypeCal& row(sd.region[std::make_pair(sd.nodes[1].regionID, product)]);
+        row.priceRatio = 0.15f;
+        row.activeShare = 0.01f;
+        for (int fallbacks = 0; (product != 0) and (fallbacks < 2); ++fallbacks) {
+            Params pp(prm);
+            pp.haulChainFallbacks = (fallbacks != 0);
+            MktHarness::HarnessMarket m2(sd, pp.salesTaxRate);
+            World w(sd, pp, m2);
+            m2.SetWorld(&w);
+            w.Build(t0);
+            w.Seed(t0);
+            w.Start(t0, false);
+            Cell* stand(w.FindCell(n2, product));
+            Cell* made(w.FindCell(n1, product));
+            T_CHECK((stand != nullptr) and (stand->supply == Supply::Abstract));
+            T_CHECK((stand != nullptr) and w.ChainStandIn(*stand) and w.StandIn(*stand));
+            T_CHECK((made != nullptr) and (made->supply == Supply::Reacted) and !w.ChainStandIn(*made));
+            for (int tick = 0; tick < 10 * 96; ++tick) {
+                int64_t t(t0 + tick * 900);
+                m2.SetNow(t);
+                w.Step(t);
+            }
+            std::map<uint16_t, Units>::const_iterator ex = w.StandInExports().find(product);
+            Units exported((ex == w.StandInExports().end()) ? 0 : ex->second);
+            if (fallbacks != 0)
+                T_CHECK(exported > 0);
+            else
+                T_CHECK_EQ(exported, 0);
+        }
+    }
     return MktTest::failures;
 }

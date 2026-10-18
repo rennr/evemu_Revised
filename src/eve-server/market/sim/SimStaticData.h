@@ -219,6 +219,10 @@ namespace MktSim {
         float halfSpreadScale       = 1.0f;
         float stockElasticityScale  = 1.0f;
         float elasticityScale       = 1.0f;
+        /* RegionRatioMinActive (PLAN-logistics-chains-fix.md F2):  a region row traded on fewer than this share of the
+         *  days has its price ratio shrunk toward the region's default:  def x (ratio / def)^w, w = activeShare / this
+         *  (a ratio from one or two trades is noise).  0:  off, the raw ratio.  0.2 as the generator's REGION_MIN_ACTIVE */
+        float regionRatioMinActive  = 0.2f;
 
         const TypeData* Type(uint16_t typeID) const;
         const GroupCal* Group(uint16_t groupID) const;

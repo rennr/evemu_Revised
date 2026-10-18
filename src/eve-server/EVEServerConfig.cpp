@@ -225,6 +225,8 @@ EVEServerConfig::EVEServerConfig()
     marketSim.HaulerMaxTripValue = 5e8;
     marketSim.HaulerCargoFactor = 3.0;
     marketSim.HaulerMargin = 0.03;
+    marketSim.HaulChainFallbacks = false;
+    marketSim.RegionRatioMinActive = 0.2;
     marketSim.RemoteSupplyElasticity = 2.0;
     // marketSim phase 3 (PLAN 6.3, 6.4, 6.6;  KillmailCoverage per PLAN 4.2, line costs as Crucible's npc station lines)
     marketSim.Actors = true;
@@ -1031,6 +1033,8 @@ bool EVEServerConfig::ProcessMarketSim(const TiXmlElement* ele)
     AddValueParser( "HaulerMaxTripValue",           marketSim.HaulerMaxTripValue );
     AddValueParser( "HaulerCargoFactor",            marketSim.HaulerCargoFactor );
     AddValueParser( "HaulerMargin",                 marketSim.HaulerMargin );
+    AddValueParser( "HaulChainFallbacks",           marketSim.HaulChainFallbacks );
+    AddValueParser( "RegionRatioMinActive",         marketSim.RegionRatioMinActive );
     AddValueParser( "RemoteSupplyElasticity",       marketSim.RemoteSupplyElasticity );
     AddValueParser( "Actors",                       marketSim.Actors );
     AddValueParser( "KillmailCoverage",             marketSim.KillmailCoverage );
@@ -1117,6 +1121,8 @@ bool EVEServerConfig::ProcessMarketSim(const TiXmlElement* ele)
     RemoveParser( "HaulerMaxTripValue" );
     RemoveParser( "HaulerCargoFactor" );
     RemoveParser( "HaulerMargin" );
+    RemoveParser( "HaulChainFallbacks" );
+    RemoveParser( "RegionRatioMinActive" );
     RemoveParser( "RemoteSupplyElasticity" );
     RemoveParser( "Actors" );
     RemoveParser( "KillmailCoverage" );

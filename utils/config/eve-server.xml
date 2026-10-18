@@ -254,6 +254,8 @@ boolean can use either 0/1 OR true/false.
         <HaulerMaxTripValue>5e8</HaulerMaxTripValue><!-- float - isk a hauler puts in one hull at most  default: 5e8 -->
         <HaulerCargoFactor>3.0</HaulerCargoFactor><!-- float - an industrial's cargo hold x this (expanded cargoholds, skills)  default: 3 -->
         <HaulerMargin>0.03</HaulerMargin><!-- float - a haul starts when it sells for this much over its cost, freight and expected loss  default: 0.03 -->
+        <HaulChainFallbacks>false</HaulChainFallbacks><!-- bool - hub traders may buy from the stock model's stand-in of a chain good (T2, component, reaction product, planetary good) that a chain makes at another node;  the stand-in ignores the chains' shocks, so false (they only sell into it)  default: false -->
+        <RegionRatioMinActive>0.2</RegionRatioMinActive><!-- float - a hub region's price ratio for a type traded there on fewer than this share of the days is shrunk toward the region's default:  default x (ratio / default)^(activeShare / this) (a ratio from one or two trades is noise);  0 = off, the raw ratio  default: 0.2 -->
         <RemoteSupplyElasticity>2.0</RemoteSupplyElasticity><!-- float - low/null-sec mining follows its netback (sale less freight and expected loss, against the default risk's) ^ this  default: 2 -->
         <!-- phase 3:  the supply chain.  mining consortia (their fleets lost and bought again), reprocessors, T1 manufacturers and loot sources replace the stock model's producers of ore, minerals, T1 and loot;  consumers lose ships and fits at the killmail rates (PLAN 6.3, 6.4) -->
         <Actors>true</Actors><!-- bool - false:  the phase 2 stock model  default: true -->

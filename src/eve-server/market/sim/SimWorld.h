@@ -139,6 +139,10 @@ namespace MktSim {
         double   haulerCargoFactor  = 3.0;          // a hull's cargo hold (invTypes.capacity) x this:  expanded cargoholds and skills
         double   haulerMargin       = 0.03;         // a haul starts when it sells for this much over its cost, freight and expected loss
         double   haulerKeepShare    = 0.5;          // a hauler takes a node's stock down to this share of its target at most
+        /* HaulChainFallbacks:  hub traders may buy from a chain stand-in (World::ChainStandIn:  the stock model's producer of
+         *  a chain good a chain makes elsewhere;  it ignores the chains' shocks, so its exports bypass them).  false:  they
+         *  only sell into one (PLAN-logistics-chains-fix.md F1);  true:  the behaviour before, for A/B runs */
+        bool     haulChainFallbacks = false;
         double   remoteSupplyElasticity = 2.0;      // remote mining follows its netback (sale less freight and expected loss), ^ this
         // phase 6:  the advanced chains (PLAN 6.4, SimChains.cpp).  they need the actors;  off:  the stock model supplies them
         bool     enableT2           = true;         // EnableT2:  inventors (invention, T2 manufacturing)
@@ -459,6 +463,17 @@ namespace MktSim {
         uint64_t TripsLost() const                      { return m_tripsLost; }
         const std::map<uint16_t, Units>& TransportLost() const  { return m_transportLost; }
         const std::map<uint16_t, Units>& HaulHullsBought() const { return m_haulHullsBought; }
+        /* a chain stand-in:  a cell on the stock model's producer (Supply::Abstract) of a chain class (T2, components,
+         *  reaction products, planetary goods) whose type a real chain makes at some node.  hub traders don't buy from one
+         *  (HaulChainFallbacks false) */
+        bool ChainStandIn(const Cell& c) const;
+        static bool ChainClass(uint8_t simClass)    { return (simClass == SimClass::MfgT2) or (simClass == SimClass::Component)
+                                                             or (simClass == SimClass::Reaction) or (simClass == SimClass::PI); }
+        /* a stand-in of any class:  Supply::Abstract while another node makes, mines or refines the type (a T1 one is never
+         *  gated, only counted).  units hub traders bought from them per type since the world started (a diagnostic, not
+         *  persisted:  0 for the chain classes unless HaulChainFallbacks) */
+        bool StandIn(const Cell& c) const;
+        const std::map<uint16_t, Units>& StandInExports() const { return m_standInExports; }
         // the share of a node's reference supply of a mineral its remote miners bring in (of one band;  0 without logistics)
         double RemoteShare(uint32_t nodeID, uint16_t typeID, int band = -1) const;
         // the route a node's remote miner of a band ships on (nullptr:  none)
@@ -622,6 +637,8 @@ namespace MktSim {
         void     BuildRoutes();
         void     SplitMining(uint32_t nodeID, uint32_t minerID, const std::vector<double>& mix);
         void     BuildHaulers();
+        // after every cell's supply is known (BuildActors):  the types a chain (or any real producer) makes somewhere
+        void     MarkMadeTypes();
         void     SeedHaulers(uint32_t nodeID, bool freshOnly);
         void     HaulerStep(Actor& a, int64_t t);
         void     RemoteMinerStep(Actor& a, int64_t t, double dtDays);
@@ -777,6 +794,8 @@ namespace MktSim {
         bool     m_tripsChanged;
         uint64_t m_tripsArrived, m_tripsLost;
         std::map<uint16_t, Units> m_transportLost, m_haulHullsBought;
+        std::vector<uint8_t> m_madeType;                            // typeID -> MadeChain | MadeAny (MarkMadeTypes)
+        std::map<uint16_t, Units> m_standInExports;
         // phase 6
         std::map<uint32_t, ChainPlan> m_chainPlans;                 // actorID ->
         std::map<uint32_t, std::vector<ChainProduct>> m_chainPending;   // nodeID -> products, from ChainSupply to ChainActors

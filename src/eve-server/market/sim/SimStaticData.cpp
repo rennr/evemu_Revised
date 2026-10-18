@@ -239,13 +239,21 @@ float StaticData::Weekday(const TypeData& t, int weekday) const
 
 float StaticData::RegionPrice(uint32_t regionID, uint16_t typeID) const
 {
-    std::map<std::pair<uint32_t, uint16_t>, RegionTypeCal>::const_iterator itr = region.find(std::make_pair(regionID, typeID));
-    if ((itr != region.end()) and Set(itr->second.priceRatio))
-        return itr->second.priceRatio;
     std::map<uint32_t, RegionDefault>::const_iterator ditr = regionDefault.find(regionID);
-    if ((ditr != regionDefault.end()) and Set(ditr->second.priceRatio))
-        return ditr->second.priceRatio;
-    return 1.0f;
+    float def(((ditr != regionDefault.end()) and Set(ditr->second.priceRatio)) ? ditr->second.priceRatio : 1.0f);
+    std::map<std::pair<uint32_t, uint16_t>, RegionTypeCal>::const_iterator itr = region.find(std::make_pair(regionID, typeID));
+    if ((itr == region.end()) or !Set(itr->second.priceRatio))
+        return def;
+    float ratio(itr->second.priceRatio);
+    /* a thin row (traded on few days):  shrunk toward the region's default, the less traded the more
+     *  (RegionRatioMinActive;  a ratio from one or two trades is noise, and its cells would fail their chains' cost test) */
+    if ((regionRatioMinActive > 0.0f) and Set(itr->second.activeShare) and (itr->second.activeShare < regionRatioMinActive)) {
+        double w((double)itr->second.activeShare / (double)regionRatioMinActive);
+        double r((double)def * std::pow((double)ratio / (double)def, w));
+        if (Set((float)r))
+            ratio = (float)r;
+    }
+    return ratio;
 }
 
 float StaticData::RegionUnits(uint32_t regionID, uint16_t typeID) const

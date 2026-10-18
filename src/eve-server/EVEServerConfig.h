@@ -247,6 +247,8 @@ public:
         double HaulerMaxTripValue;      // isk in one hull at most
         double HaulerCargoFactor;       // a hull's cargo hold (invTypes.capacity) x this
         double HaulerMargin;            // a haul starts when it pays this much over its cost, freight and expected loss
+        bool HaulChainFallbacks;        // hub traders may buy from the stock model's stand-in of a chain good a chain makes elsewhere
+        double RegionRatioMinActive;    // a region price ratio traded on fewer days than this share is shrunk toward the region's default (0:  off)
         double RemoteSupplyElasticity;  // remote mining follows its netback (sale less freight and expected loss) ^ this
         // phase 3:  the actor model (miners, reprocessors, T1 manufacturers, loot sources, ship losses;  PLAN 6.3, 6.4)
         bool Actors;                    // off:  the phase 2 stock model (abstract producers for every class)

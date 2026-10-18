@@ -629,6 +629,10 @@ void World::HaulDirection(Actor& a, HaulPlan& hp, bool aToB, int64_t t)
     for (size_t p = 0; p < hp.pairs.size(); ++p) {
         const Cell& cx(m_cells[aToB ? hp.pairs[p].first : hp.pairs[p].second]);
         const Cell& cy(m_cells[aToB ? hp.pairs[p].second : hp.pairs[p].first]);
+        /* a chain stand-in exports nothing (it may still import):  its stock model producer ignores the chains' shocks,
+         *  so its goods would bypass them network-wide (HaulChainFallbacks) */
+        if (!m_p.haulChainFallbacks and ChainStandIn(cx))
+            continue;
         double buy(Econ::ToIsk(InternalBuy(cx)));
         // the best it could sell at:  under V or V*, whichever is higher
         if (!(std::max(cy.vStar, Mid(cy)) > buy * (1.0 + margin)))
@@ -718,6 +722,8 @@ void World::HaulDirection(Actor& a, HaulPlan& hp, bool aToB, int64_t t)
             Units got(BuyAtNode(a.actorID, cx, l.second, price, l.second, t));
             if (got <= 0)
                 continue;
+            if (StandIn(cx))
+                m_standInExports[cx.typeID] += got;
             SimTrip::Line line;
             line.typeID = cx.typeID;
             line.qty = got;
@@ -1148,7 +1154,14 @@ std::string World::HaulerInfo(const Actor& a) const
             out << "\n";
         }
     } else {
-        out << Fmt("  nodes %u and %u, %u types both trade\n", hp.nodeA, hp.nodeB, (uint32_t)hp.pairs.size());
+        uint32_t gated[2] = {0, 0};
+        for (auto& pr : hp.pairs) {
+            gated[0] += ChainStandIn(m_cells[pr.first]) ? 1 : 0;
+            gated[1] += ChainStandIn(m_cells[pr.second]) ? 1 : 0;
+        }
+        out << Fmt("  nodes %u and %u, %u types both trade;  chain stand-ins (it %s from them):  %u at %u, %u at %u\n", hp.nodeA,
+                   hp.nodeB, (uint32_t)hp.pairs.size(), m_p.haulChainFallbacks ? "buys" : "doesn't buy", gated[0], hp.nodeA,
+                   gated[1], hp.nodeB);
     }
     return out.str();
 }
@@ -1171,9 +1184,24 @@ std::string World::LogisticsStatus(int64_t /*now*/) const
         lost += cur.second;
     for (auto& cur : m_haulHullsBought)
         hulls += cur.second;
-    return Fmt("Phase 4:  %u haulers, %u remote miners at %u sites;  %u shipments on the way, %llu arrived and %llu lost (%lld units) since the start, %lld hauling hulls bought.\n",
+    // what hub traders bought from stand-ins (the chain classes:  none unless HaulChainFallbacks)
+    uint32_t chainTypes(0), otherTypes(0);
+    Units chainUnits(0), otherUnits(0);
+    for (auto& cur : m_standInExports) {
+        const TypeData* t(m_static.Type(cur.first));
+        if ((t != nullptr) and ChainClass(t->simClass)) {
+            ++chainTypes;
+            chainUnits += cur.second;
+        } else {
+            ++otherTypes;
+            otherUnits += cur.second;
+        }
+    }
+    return Fmt("Phase 4:  %u haulers, %u remote miners at %u sites;  %u shipments on the way, %llu arrived and %llu lost (%lld units) since the start, %lld hauling hulls bought;"
+               "  bought from stand-ins:  %lld units of %u chain goods (HaulChainFallbacks %s), %lld of %u others.\n",
                haulers, remote, (uint32_t)m_sites.size(), (uint32_t)m_trips.size(), (unsigned long long)m_tripsArrived,
-               (unsigned long long)m_tripsLost, (long long)lost, (long long)hulls);
+               (unsigned long long)m_tripsLost, (long long)lost, (long long)hulls, (long long)chainUnits, chainTypes,
+               m_p.haulChainFallbacks ? "on" : "off", (long long)otherUnits, otherTypes);
 }
 
 }
