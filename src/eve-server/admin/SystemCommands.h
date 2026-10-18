@@ -37,7 +37,7 @@ COMMAND( killallnpcs, Acct::Role::ADMIN,
 COMMAND( cloak, Acct::Role::VIP,
          " - instantly and unconditionally toggles cloak state of your vessel")
 COMMAND( sov, Acct::Role::CONTENT,
-         "(anchor|online|offline|unanchor|complete) (itemID) | tenure (days) [solarSystemID] - anchors, onlines, offlines or unanchors a structure at once, without the delays (sovereignty structures, starbases, platforms, customs offices).  online anchors first, unanchor offlines first.  complete finishes the running anchoring/onlining/unanchoring now.  tenure backdates the claim to that many days held (the strategic/Sovereignty index follows: 7/21/35/65/100 days for levels 1-5)")
+         "(anchor|online|offline|unanchor|complete) (itemID) | tenure (days) [solarSystemID] | (military|industrial) (level 0-5 | points (0-57600000)) [solarSystemID] | index [solarSystemID] - anchors, onlines, offlines or unanchors a structure at once, without the delays (sovereignty structures, starbases, platforms, customs offices).  online anchors first, unanchor offlines first.  complete finishes the running anchoring/onlining/unanchoring now.  tenure backdates the claim to that many days held (the strategic/Sovereignty index follows: 7/21/35/65/100 days for levels 1-5).  military/industrial sets that development index to a level (the middle of its band, which holds two idle days) or to raw points; the hub's upgrades are re-checked at once.  index shows the three indices")
 COMMAND( pos, Acct::Role::PROGRAMMER,
          "(anchor|online|offline|unanchor|complete) (itemID) | fuel [towerID] [hours] - the same as /sov (any structure, at once), or fills a control tower's fuel and strontium bays")
 COMMAND( hop, Acct::Role::CONTENT,

@@ -1244,6 +1244,11 @@ PyResult Command_sov(Client* pClient, CommandDB* db, EVEServiceManager &services
      *  sovereignty structures, platforms, customs offices or any other structure.  at once, without the delays
      *  /sov tenure (days) [solarSystemID]
      *  backdates the claim to this many days held;  the strategic ("Sovereignty") index follows from the days
+     *  /sov (military|industrial) (level 0-5 | points (0-57600000)) [solarSystemID]
+     *  sets a development index.  a level puts it in the middle of that band (it holds two idle days);  the hub's
+     *  upgrades are re-checked at once
+     *  /sov index [solarSystemID]
+     *  shows the development indices
      */
     if ((args.argCount() > 1) and (args.arg(1) == "tenure")) {
         if ((args.argCount() < 3) or !args.isNumber(2) or (atoi(args.arg(2).c_str()) < 0) or (atoi(args.arg(2).c_str()) > 36500)
@@ -1258,6 +1263,39 @@ PyResult Command_sov(Client* pClient, CommandDB* db, EVEServiceManager &services
         return new PyString("Sovereignty of system " + std::to_string(systemID) + " now held for " + std::to_string(svDataMgr.GetClaimDays(systemID))
                             + " days (was " + std::to_string(wasDays) + "):  strategic index level " + std::to_string(svDataMgr.GetStrategicLevel(systemID))
                             + " (was " + std::to_string(wasLevel) + ").");
+    }
+    if ((args.argCount() > 1) and ((args.arg(1) == "military") or (args.arg(1) == "industrial"))) {
+        bool military(args.arg(1) == "military");
+        bool raw((args.argCount() > 2) and (args.arg(2) == "points"));
+        size_t valueIdx(raw ? 3 : 2);
+        int64 value((args.argCount() > valueIdx) and args.isNumber(valueIdx) ? strtoll(args.arg(valueIdx).c_str(), nullptr, 10) : -1);
+        if ((value < 0) or (value > (raw ? DevIndex::MaxPoints : 5))
+        or ((args.argCount() > valueIdx + 1) and !args.isNumber(valueIdx + 1)))
+            throw CustomError ("Correct Usage: /sov %s (level 0-5 | points (0-%lli)) [solarSystemID]", args.arg(1).c_str(),
+                               (long long)DevIndex::MaxPoints);
+        uint32 systemID((args.argCount() > valueIdx + 1) ? static_cast<uint32>(atoi(args.arg(valueIdx + 1).c_str())) : pClient->GetSystemID());
+        int64 wasPoints(military ? svDataMgr.GetMilitaryPoints(systemID) : svDataMgr.GetIndustrialPoints(systemID));
+        if (!svDataMgr.SetDevIndexPoints(systemID, military, (raw ? value : DevIndex::PointsForLevel(static_cast<uint8>(value)))))
+            throw CustomError ("System %u can't be claimed, so it has no development indices.", systemID);
+        int64 points(military ? svDataMgr.GetMilitaryPoints(systemID) : svDataMgr.GetIndustrialPoints(systemID));
+        return new PyString(std::string(military ? "Military" : "Industrial") + " index of system " + std::to_string(systemID) + " now "
+                            + std::to_string(points) + " points, level " + std::to_string(DevIndex::LevelForPoints(points)) + " (was "
+                            + std::to_string(wasPoints) + ", level " + std::to_string(DevIndex::LevelForPoints(wasPoints)) + "):  "
+                            + std::to_string(svDataMgr.GetActiveUpgradeCount(systemID)) + " hub upgrades online.");
+    }
+    if ((args.argCount() > 1) and (args.arg(1) == "index")) {
+        if ((args.argCount() > 2) and !args.isNumber(2))
+            throw CustomError ("Correct Usage: /sov index [solarSystemID]");
+        uint32 systemID((args.argCount() > 2) ? static_cast<uint32>(atoi(args.arg(2).c_str())) : pClient->GetSystemID());
+        if (!svDataMgr.IsClaimable(systemID))
+            throw CustomError ("System %u can't be claimed, so it has no development indices.", systemID);
+        int64 mil(svDataMgr.GetMilitaryPoints(systemID)), ind(svDataMgr.GetIndustrialPoints(systemID));
+        return new PyString("System " + std::to_string(systemID) + ":  military " + std::to_string(mil) + " points, level "
+                            + std::to_string(DevIndex::LevelForPoints(mil)) + (svDataMgr.IsIndexIncreasing(systemID, true) ? " (rising)" : " (falling)")
+                            + ";  industrial " + std::to_string(ind) + " points, level " + std::to_string(DevIndex::LevelForPoints(ind))
+                            + (svDataMgr.IsIndexIncreasing(systemID, false) ? " (rising)" : " (falling)") + ";  strategic level "
+                            + std::to_string(svDataMgr.GetStrategicLevel(systemID)) + " (" + std::to_string(svDataMgr.GetClaimDays(systemID))
+                            + " days held);  " + std::to_string(svDataMgr.GetActiveUpgradeCount(systemID)) + " hub upgrades online.");
     }
     return StructureStateCommand(pClient, args, "sov");
 }
