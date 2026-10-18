@@ -214,6 +214,18 @@ public:
         double MaxLineShare;            // at most this share of a station's lines of an activity is the sim's
         uint32 MinFreeLinesPerStation;  // the sim leaves at least this many lines of an activity free
         double RefineryM3PerHour;       // the sim's refining per station (soft cap).  <= 0:  no limit
+        // a node's stations (SimLineStations.h):  its constellation's, topped up with the nearest when they are few
+        uint32 NodeMinLineStations;     // stations with manufacturing lines a node works at, at least (0:  its constellation's only)
+        uint32 NodeMinResearchStations; // the same for invention lines
+        uint32 NodeStationMaxJumps;     // the farthest an added station may be
+        bool NodeScaleWithNeed;         // the node's calibrated line need can raise its targets above the floors
+        double NodeLineHeadroom;        // sim lines wanted = the average need x this
+        uint32 NodeMaxStations;         // the most stations a node's list grows to (its constellation's are kept)
+        bool NodeStationSameBand;       // a high-sec node adds high-sec stations reached through high-sec only
+        bool VirtualLinesForShortfall;  // what the stations can't cover of the wanted lines runs on the sim's own counted lines
+        bool RemoteLineFreight;         // a job away from the node's station pays freight for its inputs and output
+        bool RefineAtNodeStations;      // a node's refining is metered over the refineries of its stations, its own first
+        std::string NodeStations;       // operator override 'stationID:sid,sid,...;...':  the node works exactly there
         double MoneyDaysTarget;
         double ControllerKp;
         double ControllerKi;

@@ -89,7 +89,7 @@ public:
     // per npc corp:  the blueprints it sells of ships, of modules/charges/drones, of mining gear (crpNPCCorporationTrades);
     //  per (region, corp):  its stations with a full refinery.  for choosing the corps the actors trade as
     static void LoadActorCorpData(std::map<uint32, std::array<uint32, 3>>& blueprints, std::map<std::pair<uint32, uint32>, uint32>& refineries);
-    struct JobRow { uint32 jobID, actorID; uint8 kind; uint32 lineID, stationID; uint16 typeID; uint32 runs; int64 qtyOut, start, end; };
+    struct JobRow { uint32 jobID, actorID; uint8 kind; uint32 lineID, stationID; uint16 typeID; uint32 runs; int64 qtyOut, start, end; uint8 state; };
     static void LoadJobs(std::vector<JobRow>& into);
     // mktSimJob, rewritten when the jobs changed (inside Flush's transaction)
     static bool FlushJobs(MktSim::World& world);
@@ -98,6 +98,9 @@ public:
     // the k-space map (mapSolarSystems, mapSolarSystemJumps), the npc stations with a refinery (staStations), where the
     //  ores' belts are (roidDistribution and the systems' securityClass) and the hauling hulls' holds (invTypes.capacity)
     static void LoadLogistics(MktSim::StaticData& data);
+    // the k-space map alone:  systems (security, region, constellation) and jumps (LoadLogistics calls it;  phase 5's
+    //  node stations need it with logistics off)
+    static void LoadMap(MktSim::StaticData& data);
     // mktSimShipment:  one row per cargo line, grouped into shipments by tripID (locations as written:  the caller maps them)
     static void LoadShipments(std::vector<MktSim::SimTrip>& into);
     // mktSimShipment, rewritten when the shipments changed (inside Flush's transaction)

@@ -116,8 +116,18 @@ public:
     };
     // batched:  one statement per 500 lines
     static bool SetNextFreeTimes(const std::vector<LineTimeWrite>& writes);
-    // the stations of the station's constellation with npc lines (the station itself first, then its solar system's)
-    static void StationsWithLinesNear(uint32 stationID, std::vector<uint32>& into);
+    /* every station with lines the sim may use (SelectLinesForSim's filter):  where it is, its manufacturing and invention
+     *  lines, whether it has a refinery (the market sim's node stations, SimLineStations) */
+    struct SimLineStation {
+        uint32 stationID;
+        uint32 systemID;
+        uint32 constellationID;
+        uint32 regionID;
+        uint16 mfgLines;
+        uint16 invLines;
+        bool   refinery;
+    };
+    static bool LineStationsForSim(std::vector<SimLineStation>& into);
     // lines' next free times, and whether a player job (not delivered) ends on them after nowTime.  lines gone are left out
     static bool GetLineStatesForSim(const std::vector<uint32>& lineIDs, int64 nowTime, std::map<uint32, std::pair<int64, bool>>& into);
 };

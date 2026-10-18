@@ -215,6 +215,21 @@ boolean can use either 0/1 OR true/false.
         <MaxLineShare>0.3</MaxLineShare><!-- float - at most this share of a station's lines of an activity is the sim's (rounded down)  default: 0.3 -->
         <MinFreeLinesPerStation>2</MinFreeLinesPerStation><!-- integer - the sim leaves at least this many lines of an activity free at a station  default: 2 -->
         <RefineryM3PerHour>2000000</RefineryM3PerHour><!-- float - m3 of ore the sim refines per station and hour (soft: the rest waits);  0 = no limit  default: 2e6 -->
+        <!-- a node's stations:  its constellation's npc stations with lines, topped up with the nearest stations with lines (by jumps, a high-sec node through
+             high-sec only, its region first) until it has NodeMinLineStations with manufacturing and NodeMinResearchStations with invention lines and their sim
+             lines cover its calibrated line need x NodeLineHeadroom.  what they can't cover (NodeStationMaxJumps, NodeMaxStations) runs on the sim's own counted
+             lines (VirtualLinesForShortfall), so every EconomyScale up to 1.0 works.  boot logs each node;  GM: /simfacility node -->
+        <NodeMinLineStations>6</NodeMinLineStations><!-- integer - stations with manufacturing lines a node works at, at least (the median high-sec constellation);  0 = its constellation's only  default: 6 -->
+        <NodeMinResearchStations>2</NodeMinResearchStations><!-- integer - the same for stations with invention lines;  0 = its constellation's only  default: 2 -->
+        <NodeStationMaxJumps>5</NodeStationMaxJumps><!-- integer - the farthest an added station may be, in jumps (its constellation's are kept whatever their distance)  default: 5 -->
+        <NodeScaleWithNeed>true</NodeScaleWithNeed><!-- bool - the node's own calibrated line need can raise its targets above the floors;  false: the floors only  default: true -->
+        <NodeLineHeadroom>2.0</NodeLineHeadroom><!-- float - sim lines wanted = the node's average line need x this  default: 2.0 -->
+        <NodeMaxStations>60</NodeMaxStations><!-- integer - the most stations a node's list grows to (its constellation's are kept even if more)  default: 60 -->
+        <NodeStationSameBand>true</NodeStationSameBand><!-- bool - a high-sec node adds only high-sec stations reached through high-sec  default: true -->
+        <VirtualLinesForShortfall>true</VirtualLinesForShortfall><!-- bool - what a node's stations can't cover of its wanted lines runs on the sim's own counted lines (no station lines);  false: the shortfall stays (stock-outs)  default: true -->
+        <RemoteLineFreight>true</RemoteLineFreight><!-- bool - a job at another station than the node's pays freight for its inputs and output (FreightIskPerM3Jump x m3 x jumps, a sink)  default: true -->
+        <RefineAtNodeStations>true</RefineAtNodeStations><!-- bool - a node's refining is metered over the refineries of its stations, its own first (RefineryM3PerHour each)  default: true -->
+        <!-- <NodeStations>60008494:60008650,60014632</NodeStations>  string - operator override 'nodeStationID:stationID,stationID,...;...':  that node works exactly at these stations (after its own);  an empty element doesn't parse, so it stays commented out unless used  default: none -->
         <MoneyDaysTarget>30</MoneyDaysTarget><!-- float - the sim holds about this many days of consumer spending -->
         <ControllerKp>0.3</ControllerKp><!-- float - money controller -->
         <ControllerKi>0.02</ControllerKi><!-- float - money controller -->

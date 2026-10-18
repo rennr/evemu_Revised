@@ -88,19 +88,55 @@ int SimFacilityMgr::Initialize()
     return 1;
 }
 
-MktSim::LineCapacity* SimFacilityMgr::Capacity(const std::vector<NodeData>& nodes, double probeInstall, double probePerHour)
+MktSim::LineCapacity* SimFacilityMgr::Capacity(const MktSim::StaticData& data, double probeInstall, double probePerHour, double freightPerM3Jump)
 {
     m_capacity.reset(new LineCapacity(*this, probeInstall, probePerHour));
-    /* until phase 4 has production sites, a node's industry runs at the stations of its constellation (its own first):
-     *  a hub station alone has 50 lines at most (Rens VI-8 none), 15 of them the sim's */
-    uint32 stations(0);
-    for (auto& node : nodes) {
-        std::vector<uint32> nearby;
-        FactoryDB::StationsWithLinesNear(node.stationID, nearby);
-        stations += (uint32)nearby.size();
-        m_capacity->SetNodeStations(node.nodeID, std::vector<uint32_t>(nearby.begin(), nearby.end()));
+    const auto& c(sConfig.marketSim);
+    NodeStationParams sp;
+    sp.minStations[LineKind::Mfg] = c.NodeMinLineStations;
+    sp.minStations[LineKind::Inv] = c.NodeMinResearchStations;
+    sp.maxJumps = c.NodeStationMaxJumps;
+    sp.maxStations = std::max<uint32>(1, c.NodeMaxStations);
+    sp.scaleWithNeed = c.NodeScaleWithNeed;
+    sp.headroom = std::max(0.0, c.NodeLineHeadroom);
+    sp.sameBand = c.NodeStationSameBand;
+    sp.virtualFill = c.VirtualLinesForShortfall;
+    sp.maxLineShare = m_p.maxLineShare;
+    sp.minFreeLines = m_p.minFreeLines;
+    m_capacity->SetStationParams(sp);
+    m_capacity->SetFreight(c.RemoteLineFreight, std::max(0.0, freightPerM3Jump));
+    m_capacity->SetRefineAtNodeStations(c.RefineAtNodeStations);
+    m_capacity->SetLog([](const std::string& line) { sLog.Blue("  SimFacilityMgr", "Market sim facilities:  %s.", line.c_str()); });
+
+    // every station with lines the sim may use, and the map (logistics loads it;  read here when it is off)
+    std::vector<FactoryDB::SimLineStation> rows;
+    FactoryDB::LineStationsForSim(rows);
+    std::vector<LineStation> stations;
+    for (auto& r : rows) {
+        LineStation s;
+        s.stationID = r.stationID;
+        s.systemID = r.systemID;
+        s.constellationID = r.constellationID;
+        s.regionID = r.regionID;
+        s.mfgLines = r.mfgLines;
+        s.invLines = r.invLines;
+        s.refinery = r.refinery;
+        stations.push_back(s);
     }
-    sLog.Blue("  SimFacilityMgr", "Market sim facilities:  %u nodes work at %u stations.", (uint32)nodes.size(), stations);
+    MktSim::StaticData map;
+    const MktSim::StaticData* graph(&data);
+    if (data.systems.empty() or data.jumps.empty() or (data.systems.begin()->second.constellationID == 0)) {
+        MarketSimDB::LoadMap(map);
+        graph = &map;
+    }
+    std::map<uint32_t, std::vector<uint32_t>> fixed(LineStations::ParseOverride(c.NodeStations));
+    for (auto& node : data.nodes) {
+        std::map<uint32_t, std::vector<uint32_t>>::const_iterator f = fixed.find(node.stationID);
+        m_capacity->SetNodeRanking(node.nodeID, LineStations::Rank(node, stations, graph->systems, graph->jumps, sp,
+                                                                     (f != fixed.end()) ? &f->second : nullptr));
+    }
+    sLog.Blue("  SimFacilityMgr", "Market sim facilities:  %u stations with lines the sim may use;  %u nodes (their stations are sized at the build).",
+              (uint32)stations.size(), (uint32)data.nodes.size());
     return m_capacity.get();
 }
 
@@ -214,7 +250,7 @@ bool SimFacilityMgr::Flush()
 std::string SimFacilityMgr::Command(Client* who, const Seperator& args)
 {
     std::string sub((args.argCount() > 1) ? args.arg(1) : "status");
-    std::string usage("usage: /simfacility status | station <stationID> | reserve <stationID> <activity> <jobs> <hours> |"
+    std::string usage("usage: /simfacility status | station <stationID> | node [nodeID] | reserve <stationID> <activity> <jobs> <hours> |"
                       " release <jobID|test>   (activity: 1 manufacturing, 3 PE, 4 ME, 5 copying, 8 invention)");
     if (!m_loaded)
         return "The market sim's facilities are not loaded.";
@@ -248,6 +284,19 @@ std::string SimFacilityMgr::Command(Client* who, const Seperator& args)
                        activity, use.lines, use.free, use.simBusy, use.simOnLines, use.cap, use.allowed);
         }
         return out.empty() ? Fmt("Station %u has no lines the sim may use.", stationID) : out;
+    }
+    if (sub == "node") {
+        if (m_capacity.get() == nullptr)
+            return "The market sim doesn't book station lines (EnableFacilities, or the sim isn't built).";
+        if ((args.argCount() > 2) and args.isNumber(2))
+            return m_capacity->NodeDetail((uint32)std::strtoul(args.arg(2).c_str(), nullptr, 10), now);
+        std::string out;
+        for (auto id : m_capacity->NodeIDs()) {
+            const LineCapacity::NodeLines* n(m_capacity->Node(id));
+            out += "node " + std::to_string(id) + ":  " + (n->ranked ? LineStations::Summary(n->choice)
+                                                                     : std::to_string(n->stations.size()) + " fixed stations") + "\n";
+        }
+        return out.empty() ? std::string("No nodes.") : out + "(/simfacility node <nodeID> lists a node's stations)";
     }
     if ((sub == "reserve") or (sub == "release")) {
         if ((who->GetAccountRole() & Acct::Role::PROGRAMMER) == 0)

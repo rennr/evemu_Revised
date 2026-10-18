@@ -52,10 +52,12 @@ public:
     //  without one
     void PlayerInstalls(uint32 lineID, int64 endTime);
 
-    /* the world's capacity on these lines.  a node's jobs run at the stations of its constellation that have lines (its
-     *  own first).  probeInstall/probePerHour:  the cost of a job the planner prices before booking it (LineInstallCost,
-     *  LineCostPerHour) */
-    MktSim::LineCapacity* Capacity(const std::vector<MktSim::NodeData>& nodes, double probeInstall, double probePerHour);
+    /* the world's capacity on these lines.  a node's jobs run at its constellation's stations with lines, topped up with
+     *  the nearest (SimLineStations.h;  sized from the world's line need at the end of Build), its own first.
+     *  probeInstall/probePerHour:  the cost of a job the planner prices before booking it (LineInstallCost,
+     *  LineCostPerHour);  freightPerM3Jump:  FreightIskPerM3Jump (RemoteLineFreight).  data.systems:  the map (read here
+     *  when logistics didn't load it) */
+    MktSim::LineCapacity* Capacity(const MktSim::StaticData& data, double probeInstall, double probePerHour, double freightPerM3Jump);
 
     /* persistence */
     // the market sim writes the lines in its own flush from now on

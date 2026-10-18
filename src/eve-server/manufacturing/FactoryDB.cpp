@@ -1130,6 +1130,22 @@ bool FactoryDB::UpdateAssemblyLine(uint32 assemblyLineID, const EvERam::LineConf
 }
 
 namespace {
+    /* the lines an npc corp may use (SelectLinesForSim and LineStationsForSim share it):  no corp or alliance
+     *  restriction, standing 0 enough, security limits around 0 */
+    std::string SimLineFilter()
+    {
+        char buf[640];
+        std::snprintf(buf, sizeof(buf),
+            "(COALESCE(al.restrictionMask, 0) & %u) = 0"
+            " AND ((COALESCE(al.restrictionMask, 0) & %u) = 0 OR COALESCE(al.minimumStanding, 0) <= 0)"
+            " AND ((COALESCE(al.restrictionMask, 0) & %u) = 0 OR (COALESCE(al.minimumCharSecurity, 0) <= 0"
+            "   AND COALESCE(al.maximumCharSecurity, 0) >= 0 AND COALESCE(al.minimumCorpSecurity, 0) <= 0"
+            "   AND COALESCE(al.maximumCorpSecurity, 0) >= 0))",
+            (uint32)(EvERam::RestrictionMask::ByCorp | EvERam::RestrictionMask::ByAlliance),
+            (uint32)EvERam::RestrictionMask::ByStanding, (uint32)EvERam::RestrictionMask::BySecurity);
+        return buf;
+    }
+
     std::string IdList(const std::vector<uint32>& ids, size_t from, size_t to)
     {
         std::string list;
@@ -1156,16 +1172,9 @@ bool FactoryDB::SelectLinesForSim(const std::vector<uint32>& stationIDs, uint8 a
         " JOIN staStations AS st ON st.stationID = al.containerID AND st.corporationID = al.ownerID"
         " JOIN crpNPCCorporations AS corp ON corp.corporationID = al.ownerID"
         " LEFT JOIN ramAssemblyLineTypes AS alt ON alt.assemblyLineTypeID = al.assemblyLineTypeID"
-        " WHERE al.containerID IN (%s) AND al.activityID = %u"
-        " AND (COALESCE(al.restrictionMask, 0) & %u) = 0"
-        " AND ((COALESCE(al.restrictionMask, 0) & %u) = 0 OR COALESCE(al.minimumStanding, 0) <= 0)"
-        " AND ((COALESCE(al.restrictionMask, 0) & %u) = 0 OR (COALESCE(al.minimumCharSecurity, 0) <= 0"
-        "   AND COALESCE(al.maximumCharSecurity, 0) >= 0 AND COALESCE(al.minimumCorpSecurity, 0) <= 0"
-        "   AND COALESCE(al.maximumCorpSecurity, 0) >= 0))"
+        " WHERE al.containerID IN (%s) AND al.activityID = %u AND %s"
         " ORDER BY al.containerID, al.assemblyLineID",
-        IdList(stationIDs, 0, stationIDs.size()).c_str(), activityID,
-        (EvERam::RestrictionMask::ByCorp | EvERam::RestrictionMask::ByAlliance),
-        EvERam::RestrictionMask::ByStanding, EvERam::RestrictionMask::BySecurity))
+        IdList(stationIDs, 0, stationIDs.size()).c_str(), activityID, SimLineFilter().c_str()))
     {
         _log(DATABASE__ERROR, "Failed to query assembly lines for the market sim: %s", res.error.c_str());
         return false;
@@ -1186,25 +1195,37 @@ bool FactoryDB::SelectLinesForSim(const std::vector<uint32>& stationIDs, uint8 a
     return true;
 }
 
-void FactoryDB::StationsWithLinesNear(uint32 stationID, std::vector<uint32>& into)
+bool FactoryDB::LineStationsForSim(std::vector<SimLineStation>& into)
 {
-    into.push_back(stationID);
     DBQueryResult res;
     if (!sDatabase.RunQuery(res,
-        "SELECT st.stationID FROM staStations AS h"
-        " JOIN staStations AS st ON st.constellationID = h.constellationID AND st.stationID != h.stationID"
-        " WHERE h.stationID = %u"
-        " AND EXISTS (SELECT 1 FROM ramAssemblyLines AS al WHERE al.containerID = st.stationID AND al.ownerID = st.corporationID)"
-        " ORDER BY (st.solarSystemID = h.solarSystemID) DESC, st.stationID",
-        stationID))
+        "SELECT st.stationID, st.solarSystemID, st.constellationID, st.regionID, SUM(al.activityID = 1), SUM(al.activityID = 8),"
+        " MAX(COALESCE(st.reprocessingEfficiency, 0) > 0)"
+        " FROM ramAssemblyLines AS al"
+        " JOIN staStations AS st ON st.stationID = al.containerID AND st.corporationID = al.ownerID"
+        " JOIN crpNPCCorporations AS corp ON corp.corporationID = al.ownerID"
+        " WHERE al.activityID IN (1, 8) AND %s"
+        " GROUP BY st.stationID, st.solarSystemID, st.constellationID, st.regionID"
+        " ORDER BY st.stationID",
+        SimLineFilter().c_str()))
     {
-        _log(DATABASE__ERROR, "Failed to query the stations near %u: %s", stationID, res.error.c_str());
-        return;
+        _log(DATABASE__ERROR, "Failed to query the stations with lines for the market sim: %s", res.error.c_str());
+        return false;
     }
 
     DBResultRow row;
-    while (res.GetRow(row))
-        into.push_back(row.GetUInt(0));
+    while (res.GetRow(row)) {
+        SimLineStation s = SimLineStation();
+        s.stationID       = row.GetUInt(0);
+        s.systemID        = row.GetUInt(1);
+        s.constellationID = row.GetUInt(2);
+        s.regionID        = row.GetUInt(3);
+        s.mfgLines        = (uint16)row.GetUInt(4);
+        s.invLines        = (uint16)row.GetUInt(5);
+        s.refinery        = (row.GetUInt(6) != 0);
+        into.push_back(s);
+    }
+    return true;
 }
 
 bool FactoryDB::SetNextFreeTimes(const std::vector<LineTimeWrite>& writes)

@@ -371,7 +371,7 @@ int MarketSimMgr::Initialize()
     m_world->SetDayHook([this](const DayReport& rep) { OnDay(rep); });
     // the manufacturers' jobs on npc station lines (phase 5), written with the sim's own flush
     if (sConfig.marketSim.EnableFacilities and sSimFacilities.IsLoaded()) {
-        m_world->SetCapacity(sSimFacilities.Capacity(m_static.nodes, m_params.lineInstallCost, m_params.lineCostPerHour));
+        m_world->SetCapacity(sSimFacilities.Capacity(m_static, m_params.lineInstallCost, m_params.lineCostPerHour, m_params.freightPerM3Jump));
         sSimFacilities.AttachToSim(true);
     }
     m_world->Build(now);
@@ -555,7 +555,8 @@ bool MarketSimMgr::LoadSaved(int64 now)
         j.start = r.start;
         j.end = r.end;
         j.stationID = r.stationID;
-        // the manufacturer's node (the job may run at another station of its constellation, phase 5)
+        j.virtualLine = ((r.state & 1) != 0);
+        // the manufacturer's node (the job may run at another of its node's stations, phase 5)
         if ((j.actorID != 0) and (j.actorID <= m_world->Actors().size()))
             j.nodeID = m_world->Actors()[j.actorID - 1].nodeID;
         if (m_world->LoadJob(j))

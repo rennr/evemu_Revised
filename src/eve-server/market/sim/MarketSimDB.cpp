@@ -880,7 +880,7 @@ void MarketSimDB::LoadJobs(std::vector<JobRow>& into)
     DBQueryResult res;
     DBResultRow row;
     if (sDatabase.RunQuery(res,
-        "SELECT jobID, actorID, kind, assemblyLineID, stationID, outputTypeID, runs, qtyOut, startTime, endTime FROM mktSimJob ORDER BY jobID"))
+        "SELECT jobID, actorID, kind, assemblyLineID, stationID, outputTypeID, runs, qtyOut, startTime, endTime, state FROM mktSimJob ORDER BY jobID"))
     {
         while (res.GetRow(row)) {
             JobRow j = JobRow();
@@ -894,6 +894,7 @@ void MarketSimDB::LoadJobs(std::vector<JobRow>& into)
             j.qtyOut = row.GetInt64(7);
             j.start = row.GetInt64(8);
             j.end = row.GetInt64(9);
+            j.state = (uint8)row.GetUInt(10);
             into.push_back(j);
         }
     }
@@ -920,9 +921,10 @@ bool MarketSimDB::FlushJobs(World& world)
     for (auto& cur : world.Jobs()) {
         const SimJob& j(cur.second);
         const NodeData* node(world.Node(j.nodeID));
-        rows.push_back(Fmt("(%u,%u,%u,%u,%u,%u,%u,%lld,%lld,%lld,0)", j.jobID, j.actorID, j.activity, j.lineID,
+        // state 1:  on the node's counted lines (the station lines' shortfall)
+        rows.push_back(Fmt("(%u,%u,%u,%u,%u,%u,%u,%lld,%lld,%lld,%u)", j.jobID, j.actorID, j.activity, j.lineID,
                            (j.stationID != 0) ? j.stationID : ((node != nullptr) ? node->stationID : 0), j.typeID, j.runs, (long long)j.qtyOut, (long long)j.start,
-                           (long long)j.end));
+                           (long long)j.end, j.virtualLine ? 1u : 0u));
     }
     ok = InsertRows("INSERT INTO mktSimJob (jobID, actorID, kind, assemblyLineID, stationID, outputTypeID, runs, qtyOut, startTime,"
                     " endTime, state) VALUES ", rows, "") and ok;
@@ -935,22 +937,32 @@ bool MarketSimDB::FlushJobs(World& world)
  * phase 4:  logistics
  */
 
-void MarketSimDB::LoadLogistics(StaticData& data)
+void MarketSimDB::LoadMap(StaticData& data)
 {
     DBQueryResult res;
     DBResultRow row;
+    data.systems.clear();
+    data.jumps.clear();
     // k-space (wormhole regions are 11000000 and up)
-    if (sDatabase.RunQuery(res, "SELECT solarSystemID, security, regionID FROM mapSolarSystems WHERE regionID < 11000000")) {
+    if (sDatabase.RunQuery(res, "SELECT solarSystemID, security, regionID, constellationID FROM mapSolarSystems WHERE regionID < 11000000")) {
         while (res.GetRow(row)) {
             MapSystem s;
             s.security = row.GetFloat(1);
             s.regionID = row.GetUInt(2);
+            s.constellationID = row.GetUInt(3);
             data.systems[row.GetUInt(0)] = s;
         }
     }
     if (sDatabase.RunQuery(res, "SELECT fromSolarSystemID, toSolarSystemID FROM mapSolarSystemJumps WHERE fromSolarSystemID < toSolarSystemID"))
         while (res.GetRow(row))
             data.jumps.push_back(std::make_pair(row.GetUInt(0), row.GetUInt(1)));
+}
+
+void MarketSimDB::LoadLogistics(StaticData& data)
+{
+    DBQueryResult res;
+    DBResultRow row;
+    LoadMap(data);
     if (sDatabase.RunQuery(res,
         "SELECT stationID, solarSystemID, regionID, reprocessingEfficiency, reprocessingStationsTake FROM staStations"
         " WHERE reprocessingEfficiency > 0 ORDER BY stationID"))
