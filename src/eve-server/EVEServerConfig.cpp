@@ -578,6 +578,9 @@ EVEServerConfig::EVEServerConfig()
     // sov
     sov.MilitaryPointsPerBountyISK = 0.1f;
     sov.IndustrialPointsPerM3 = 1.6f;
+    sov.MilitaryUnbountiedNpcs = true;
+    sov.MilitaryFromSentries = true;
+    sov.IndustrialPointsPerHack = 4800.0f;
     sov.DevIndexDecayPerHour = 100000;
 
     // pos
@@ -1858,12 +1861,18 @@ bool EVEServerConfig::ProcessSov( const TiXmlElement* ele )
 {
     AddValueParser( "MilitaryPointsPerBountyISK",   sov.MilitaryPointsPerBountyISK );
     AddValueParser( "IndustrialPointsPerM3",        sov.IndustrialPointsPerM3 );
+    AddValueParser( "MilitaryUnbountiedNpcs",       sov.MilitaryUnbountiedNpcs );
+    AddValueParser( "MilitaryFromSentries",         sov.MilitaryFromSentries );
+    AddValueParser( "IndustrialPointsPerHack",      sov.IndustrialPointsPerHack );
     AddValueParser( "DevIndexDecayPerHour",         sov.DevIndexDecayPerHour );
 
     const bool result = ParseElementChildren( ele );
 
     RemoveParser( "MilitaryPointsPerBountyISK" );
     RemoveParser( "IndustrialPointsPerM3" );
+    RemoveParser( "MilitaryUnbountiedNpcs" );
+    RemoveParser( "MilitaryFromSentries" );
+    RemoveParser( "IndustrialPointsPerHack" );
     RemoveParser( "DevIndexDecayPerHour" );
 
     return result;

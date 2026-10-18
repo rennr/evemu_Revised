@@ -313,8 +313,8 @@ void NPC::Killed(Damage &damage) {
     MapDB::AddFactionKill(locationID);
 
     if (pClient != nullptr) {
-        // military development index grows with the (unmodified) bounty of npcs killed by players
-        svDataMgr.AddMilitaryActivity(locationID, m_self->GetAttribute(AttrEntityKillBounty).get_double());
+        // military development index grows with the (unmodified) bounty of npcs killed by players, or a rogue drone's equivalent
+        svDataMgr.AddNpcKill(locationID, m_self->groupID(), m_self->GetAttribute(AttrEntityKillBounty).get_double(), false);
         //award kill bounty.
         AwardBounty( pClient );
         if (m_system->GetSystemSecurityRating() > 0)

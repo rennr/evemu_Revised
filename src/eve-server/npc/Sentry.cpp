@@ -16,6 +16,7 @@
 #include "system/Container.h"
 #include "system/Damage.h"
 #include "system/SystemManager.h"
+#include "system/sov/SovereigntyDataMgr.h"
 
 
 Sentry::Sentry(InventoryItemRef self, EVEServiceManager& services, SystemManager* system, const FactionData& data)
@@ -206,6 +207,9 @@ void Sentry::Killed(Damage &damage) {
     if (pClient != nullptr) {
         // destructible sentries carry a bounty like the rats around them (npc ai plan B19b).  AwardBounty skips 0
         AwardBounty( pClient );
+        // pirate and drone sentries (not law guns) raise the military index like the rats around them
+        if (!IsLawSentry())
+            svDataMgr.AddNpcKill(locationID, m_self->groupID(), m_self->GetAttribute(AttrEntityKillBounty).get_double(), true);
         if (m_system->GetSystemSecurityRating() > 0)
             AwardSecurityStatus(m_self, pClient->GetChar().get());  // this awards secStatusChange for npcs in empire space
     }

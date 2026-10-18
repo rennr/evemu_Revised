@@ -650,6 +650,9 @@ boolean can use either 0/1 OR true/false.
     <sov><!-- sovereignty development indices (Dominion/Crucible rules: one level is 9.6M points, indices decay about a level every 4 days) -->
         <MilitaryPointsPerBountyISK>0.1</MilitaryPointsPerBountyISK><!-- military index points per isk of bounty of npcs killed in the system (before the gain modifier of the current level).  0.1:  about 19M isk of bounties from 0 to level 1, about 96M isk a day holds level 5 -->
         <IndustrialPointsPerM3>1.6</IndustrialPointsPerM3><!-- industrial index points per m3 of ore and ice mined in the system (before the gain modifier).  1.6 matches the client's level bands to the Bloodtear 2010 measurements:  1.5M m3 from 0 to level 1, 12M m3 a day holds level 5 -->
+        <MilitaryUnbountiedNpcs>true</MilitaryUnbountiedNpcs><!-- bool - rogue drones have no bounty in this era:  they count the median pirate bounty of their hull class (frigate 12000 ... commander battleship 8812500 isk), so drone regions can raise the military index -->
+        <MilitaryFromSentries>true</MilitaryFromSentries><!-- bool - destructible pirate and drone sentries (not empire law guns) count their bounty like npcs; unbountied neutralizer sentries 40000 isk with MilitaryUnbountiedNpcs -->
+        <IndustrialPointsPerHack>4800</IndustrialPointsPerHack><!-- industrial index points per hacking or archaeology container opened (before the gain modifier).  4800 = 3000 m3 of ore, about one 3-minute cycle of a skilled Covetor (three strip miners).  0 = off -->
         <DevIndexDecayPerHour>100000</DevIndexDecayPerHour><!-- points per hour; the client draws its level bars with 100000, so change with care -->
     </sov>
 

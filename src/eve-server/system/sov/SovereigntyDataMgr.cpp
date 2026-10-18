@@ -716,34 +716,45 @@ DevIndexData& SovereigntyDataMgr::GetDevIndex(uint32 systemID)
     return m_devIndex.emplace(systemID, data).first->second;
 }
 
-void SovereigntyDataMgr::AddMilitaryActivity(uint32 systemID, double bountyISK)
+void SovereigntyDataMgr::GainIndex(uint32 systemID, double rawPoints, bool military)
 {
-    if ((bountyISK <= 0) or !IsClaimable(systemID))
+    if ((rawPoints <= 0) or !IsClaimable(systemID))
         return;
 
     DevIndexData& data = GetDevIndex(systemID);
-    int64 points = DevIndex::GainPoints(bountyISK * sConfig.sov.MilitaryPointsPerBountyISK, data.military, true);
+    int64& index(military ? data.military : data.industrial);
+    int64 points = DevIndex::GainPoints(rawPoints, index, military);
     if (points < 1)
         return;
-    data.military = DevIndex::AddPoints(data.military, points);
-    data.militaryGain += points;
+    index = DevIndex::AddPoints(index, points);
+    (military ? data.militaryGain : data.industrialGain) += points;
     data.dirty = true;
-    _log(SOV__DEBUG, "AddMilitaryActivity() - %lli points in %u (now %lli)", points, systemID, data.military);
+    _log(SOV__DEBUG, "GainIndex() - %lli %s points in %u (now %lli)", (long long)points, (military ? "military" : "industrial"),
+         systemID, (long long)index);
+}
+
+void SovereigntyDataMgr::AddMilitaryActivity(uint32 systemID, double bountyISK)
+{
+    GainIndex(systemID, bountyISK * sConfig.sov.MilitaryPointsPerBountyISK, true);
+}
+
+void SovereigntyDataMgr::AddNpcKill(uint32 systemID, uint32 groupID, double bountyISK, bool sentry)
+{
+    if (sentry and !sConfig.sov.MilitaryFromSentries)
+        return;
+    if ((bountyISK <= 0) and sConfig.sov.MilitaryUnbountiedNpcs)
+        bountyISK = DevIndex::UnbountiedBountyISK(groupID);
+    AddMilitaryActivity(systemID, bountyISK);
 }
 
 void SovereigntyDataMgr::AddIndustrialActivity(uint32 systemID, double m3)
 {
-    if ((m3 <= 0) or !IsClaimable(systemID))
-        return;
+    GainIndex(systemID, m3 * sConfig.sov.IndustrialPointsPerM3, false);
+}
 
-    DevIndexData& data = GetDevIndex(systemID);
-    int64 points = DevIndex::GainPoints(m3 * sConfig.sov.IndustrialPointsPerM3, data.industrial, false);
-    if (points < 1)
-        return;
-    data.industrial = DevIndex::AddPoints(data.industrial, points);
-    data.industrialGain += points;
-    data.dirty = true;
-    _log(SOV__DEBUG, "AddIndustrialActivity() - %lli points in %u (now %lli)", points, systemID, data.industrial);
+void SovereigntyDataMgr::AddHackingActivity(uint32 systemID)
+{
+    GainIndex(systemID, sConfig.sov.IndustrialPointsPerHack, false);
 }
 
 void SovereigntyDataMgr::Decay(DevIndexData& data, int64 now, bool hourly)

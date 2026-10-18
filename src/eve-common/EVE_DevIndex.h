@@ -12,6 +12,13 @@
   *   the IHub bars draw sovSvc.GetIndexLevel:  the band the points are in, 5 from 57.6M up
   *  the Bloodtear alliance's 2010 Industry Index Report fits these constants exactly at 1.6 points per m3 mined:
   *   1.5M/3M/6M/12M/24M m3 to reach levels 1-5, 0.75M/1.5M/3M/6M/12M m3 a day to hold them
+  *
+  *  rogue drones carry no entityKillBounty in this era's data, so drone regions would never raise a military index.
+  *  UnbountiedBountyISK() gives them a bounty equivalent by hull class:  the median entityKillBounty of the five pirate
+  *  factions' groups of the same class (Crucible dgmTypeAttributes 481), asteroid and deadspace separately.  swarms
+  *  have no pirate counterpart:  their median hit points are about 1/13 of a pirate frigate's, so 1,000 isk (the
+  *  smallest bounty in the data) and 750 in deadspace.  destructible sentry guns without a bounty (the energy
+  *  neutralizer sentries) count the median bounty of the bountied ones, 40,000 isk.
   */
 
 
@@ -109,6 +116,36 @@ namespace DevIndex {
         if (level > 5)
             level = 5;
         return (LevelSize * level) + (LevelSize / 2);
+    }
+
+    // military bounty equivalent (isk) of an npc group without an entityKillBounty, 0 if it has none.  see above
+    inline double UnbountiedBountyISK(uint32_t groupID)
+    {
+        switch (groupID) {
+            // Asteroid Rogue Drone                         // pirate median of the class
+            case 759:   return 12000;       // Frigate
+            case 758:   return 18000;       // Destroyer
+            case 757:   return 117500;      // Cruiser
+            case 755:   return 200000;      // BattleCruiser
+            case 756:   return 1175000;     // Battleship
+            case 847:   return 67500;       // Commander Frigate
+            case 846:   return 135000;      // Commander Destroyer
+            case 845:   return 600000;      // Commander Cruiser
+            case 843:   return 1500000;     // Commander BattleCruiser
+            case 844:   return 8812500;     // Commander Battleship
+            case 761:   return 1000;        // Swarm
+            // Deadspace Rogue Drone
+            case 805:   return 8625;        // Frigate
+            case 804:   return 14625;       // Destroyer
+            case 803:   return 75000;       // Cruiser
+            case 801:   return 153750;      // BattleCruiser
+            case 802:   return 937500;      // Battleship
+            case 806:   return 750;         // Swarm
+            // Destructible Sentry Gun (energy neutralizer sentries)
+            case 383:   return 40000;
+            default:
+                return 0;
+        }
     }
 }
 

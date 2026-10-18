@@ -685,6 +685,9 @@ public:
     struct {
         float MilitaryPointsPerBountyISK;   // military index points per isk of npc bounty killed in the system (0.1)
         float IndustrialPointsPerM3;        // industrial index points per m3 of ore and ice mined in the system (1.6, the Bloodtear 2010 fit)
+        bool MilitaryUnbountiedNpcs;        // rogue drones (no bounty in this era) count a pirate bounty equivalent of their hull class
+        bool MilitaryFromSentries;          // destructible pirate and drone sentries count like npcs
+        float IndustrialPointsPerHack;      // industrial index points per hacking or archaeology container opened (0 = off)
         uint32 DevIndexDecayPerHour;        // points (client devIndexUtil.devIndexDecayRate; other values desync the client's level bars)
     } sov;
 

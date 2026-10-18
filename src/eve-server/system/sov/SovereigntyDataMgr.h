@@ -149,8 +149,14 @@ public:
     bool IsClaimable(uint32 systemID);
     // npc kill in systemID, adds the bounty's military points
     void AddMilitaryActivity(uint32 systemID, double bountyISK);
+    /* a player killed an npc or destructible sentry of groupID with this bounty in systemID.  without a bounty, rogue
+     *  drones (and neutralizer sentries) count their hull class's equivalent (DevIndex::UnbountiedBountyISK) while
+     *  sov.MilitaryUnbountiedNpcs is on.  sentries only count with sov.MilitaryFromSentries */
+    void AddNpcKill(uint32 systemID, uint32 groupID, double bountyISK, bool sentry);
     // m3 of ore or ice mined in systemID, adds industrial points
     void AddIndustrialActivity(uint32 systemID, double m3);
+    // a hacking or archaeology container opened in systemID, adds sov.IndustrialPointsPerHack industrial points
+    void AddHackingActivity(uint32 systemID);
     // hourly index decay
     void Process();
     void SaveDevIndices();
@@ -203,6 +209,8 @@ private:
     // the claim as sovMgr.GetSystemSovereigntyInfo sends it (util.KeyVal)
     static PyRep* MakeSovInfo(const SovereigntyData& data);
     DevIndexData& GetDevIndex(uint32 systemID);
+    // rawPoints (before the band modifier) of military or industrial activity in systemID
+    void GainIndex(uint32 systemID, double rawPoints, bool military);
     // decay one index entry up to 'now'.  hourly also closes the gain period ('increasing' flags)
     void Decay(DevIndexData& data, int64 now, bool hourly);
 

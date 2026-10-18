@@ -15,6 +15,7 @@
 #include "system/Container.h"
 #include "system/SystemManager.h"
 #include "system/cosmicMgrs/DungeonMgr.h"
+#include "system/sov/SovereigntyDataMgr.h"
 
 /* this class is for all salvage and data mining types */
 
@@ -192,6 +193,16 @@ void Prospector::CycleComplete()
 
 void Prospector::OnContainerSuccess()
 {
+    // hacking and archaeology raise the system's industrial index (Dominion:  "successful hacking or archaeology")
+    switch (m_modRef->type().GetAttribute(AttrRequiredSkill1).get_uint32()) {
+        case EvESkill::Hacking:
+        case EvESkill::Archaeology:
+            svDataMgr.AddHackingActivity(m_sysMgr->GetID());
+            break;
+        default:
+            break;
+    }
+
     ContainerSE* pCont(m_targetSE->GetContSE());
     // open for everyone from now on.  the loot is made now
     pCont->Unlock();

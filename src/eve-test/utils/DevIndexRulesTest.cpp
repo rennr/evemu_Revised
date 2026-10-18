@@ -126,6 +126,24 @@ int utils_DevIndexRulesTest( int /*argc*/, char* /*argv*/[] )
           "a GM level holds 47 idle hours");
     Check(PointsForLevel(9) == PointsForLevel(5), "PointsForLevel stops at 5");
 
+    // bounty equivalents of npcs without a bounty
+    Check(UnbountiedBountyISK(759) == 12000, "an asteroid rogue drone frigate counts like a median pirate frigate");
+    Check(UnbountiedBountyISK(844) == 8812500, "an asteroid rogue drone commander battleship counts like a pirate commander one");
+    Check(UnbountiedBountyISK(805) < UnbountiedBountyISK(759), "deadspace drones count less than asteroid ones, as pirate bounties do");
+    Check(UnbountiedBountyISK(761) < UnbountiedBountyISK(759), "a swarm counts less than a frigate");
+    Check(UnbountiedBountyISK(383) == 40000, "an unbountied destructible sentry counts the median sentry bounty");
+    Check(UnbountiedBountyISK(550) == 0, "pirate groups have their own bounty");
+    Check(UnbountiedBountyISK(99) == 0, "empire law guns count nothing");
+    bool rising(true);
+    const uint32_t asteroid[5] = {759, 758, 757, 755, 756}, commander[5] = {847, 846, 845, 843, 844}, deadspace[5] = {805, 804, 803, 801, 802};
+    for (uint8_t i = 1; i < 5; ++i)
+        rising &= (UnbountiedBountyISK(asteroid[i]) > UnbountiedBountyISK(asteroid[i - 1]))
+              and (UnbountiedBountyISK(commander[i]) > UnbountiedBountyISK(commander[i - 1]))
+              and (UnbountiedBountyISK(deadspace[i]) > UnbountiedBountyISK(deadspace[i - 1]));
+    Check(rising, "bigger drone hulls count more (Dominion:  \"the bigger the NPC\")");
+    // 0.1 points per isk:  a pirate battleship and a drone battleship are worth the same at level 0
+    Check(GainPoints(UnbountiedBountyISK(756) * 0.1, 0, true) == 587500, "a drone battleship is 587,500 points at level 0");
+
     // Bloodtear Industry Index Report (2010) at 1.6 points per m3:  m3 to obtain each level from the one below
     int64_t points(0);
     points = Mine(points, 1.5 * M, BloodtearPerM3);
