@@ -138,7 +138,7 @@ namespace {
         World world(data, p, market);
         market.SetWorld(&world);
         // the manufacturers on the hubs' station lines (phase 5), as in the phase 3 tests
-        HarnessCapacity lines(data.nodes, p);
+        HarnessCapacity lines(data, p);
         world.SetCapacity(lines.Capacity());
         world.Build(StartTime);
         world.Seed(StartTime);

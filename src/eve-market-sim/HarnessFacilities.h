@@ -51,13 +51,22 @@ private:
  *  of FacilityParams' defaults.  <= 0 / < 0 keeps a default */
 void SetHarnessLineShare(double maxLineShare, int minFreeLines);
 
-/* the world's capacity in the harness (World::SetCapacity before Build), as the server books it:  a node works at the
- *  npc stations of its hub's constellation that have lines (SimFacilityMgr::Capacity, Crucible's staStations and
- *  ramAssemblyLines:  50 manufacturing lines each, none at Rens VI-8), its own station first;  a node at another
- *  station works there only */
+/* phase 5 (scenario keys NodeMinLineStations ... RefineAtNodeStations, the flags --node-stations and --node-max-jumps):
+ *  every HarnessCapacity made afterwards uses these (MaxLineShare and MinFreeLinesPerStation come from
+ *  SetHarnessLineShare).  freight and refining at the node's stations:  RemoteLineFreight, RefineAtNodeStations */
+MktSim::NodeStationParams& HarnessNodeStations();
+void SetHarnessNodeExtras(int remoteLineFreight, int refineAtNodeStations);
+// --line-need / --actors:  Finalize's lines are printed
+void SetHarnessLineLog(bool on);
+
+/* the world's capacity in the harness (World::SetCapacity before Build), as the server books it.  with the export's
+ *  lineStations:  every node's stations by SimLineStations (its constellation's, topped up, sized from the world's line
+ *  need), each station with its real manufacturing and invention lines (no synthetic ones).  without them (an older
+ *  export, the synthetic world):  the hubs' constellation stations of Crucible as fixed lists (50 manufacturing lines
+ *  each, none at Rens VI-8, the synthetic research lines everywhere), a node at another station there only */
 class HarnessCapacity {
 public:
-    HarnessCapacity(const std::vector<MktSim::NodeData>& nodes, const MktSim::Params& p);
+    HarnessCapacity(const MktSim::StaticData& data, const MktSim::Params& p);
 
     MktSim::LineCapacity* Capacity()                    { return &m_capacity; }
     HarnessFacilities& Lines()                          { return m_lines; }

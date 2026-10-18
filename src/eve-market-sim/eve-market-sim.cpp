@@ -25,6 +25,7 @@ int EconomyTest();
 int LedgerTest();
 int WorldTest();
 int FacilitiesTest();
+int NodeStationsGoldenTest();
 int ProductionTest();
 int ActorsTest();
 int LogisticsTest();
@@ -43,6 +44,7 @@ namespace {
         { "ledger",     &LedgerTest },
         { "world",      &WorldTest },
         { "facilities", &FacilitiesTest },
+        { "nodestations-golden", &NodeStationsGoldenTest },
         { "production", &ProductionTest },
         { "actors",     &ActorsTest },
         { "logistics",  &LogisticsTest },

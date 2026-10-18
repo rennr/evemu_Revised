@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 
 #include "HarnessFacilities.h"
 
@@ -105,6 +106,11 @@ namespace {
     // phase 7:  scenario overrides (SetHarnessLineShare);  <= 0 / < 0:  the default
     double   s_maxLineShare = 0.0;
     int      s_minFreeLines = -1;
+    // the node stations' keys (HarnessNodeStations);  -1:  the default
+    NodeStationParams s_nodeStations;
+    int      s_remoteFreight = -1;
+    int      s_refineAtNode = -1;
+    bool     s_lineLog = false;
 
     FacilityParams HarnessFacilityParams(const Params& p)
     {
@@ -118,6 +124,24 @@ namespace {
     }
 }
 
+NodeStationParams& HarnessNodeStations()
+{
+    return s_nodeStations;
+}
+
+void SetHarnessNodeExtras(int remoteLineFreight, int refineAtNodeStations)
+{
+    if (remoteLineFreight >= 0)
+        s_remoteFreight = remoteLineFreight;
+    if (refineAtNodeStations >= 0)
+        s_refineAtNode = refineAtNodeStations;
+}
+
+void SetHarnessLineLog(bool on)
+{
+    s_lineLog = on;
+}
+
 void SetHarnessLineShare(double maxLineShare, int minFreeLines)
 {
     if (maxLineShare > 0.0)
@@ -126,17 +150,40 @@ void SetHarnessLineShare(double maxLineShare, int minFreeLines)
         s_minFreeLines = minFreeLines;
 }
 
-HarnessCapacity::HarnessCapacity(const std::vector<NodeData>& nodes, const Params& p)
+HarnessCapacity::HarnessCapacity(const StaticData& data, const Params& p)
 : m_lines(HarnessFacilityParams(p)),
   m_capacity(m_lines, p.lineInstallCost, p.lineCostPerHour)
 {
     m_lines.SetLineCost(p.lineInstallCost, p.lineCostPerHour, 1000002);
-    m_lines.SetStationLines(60004588, LineActivity::Manufacturing, 0);
-    for (auto& n : nodes) {
-        std::vector<uint32_t> stations(1, n.stationID);
-        for (auto& h : CrucibleHubStations())
-            if (h.hub == n.stationID)
-                stations = h.stations;
-        m_capacity.SetNodeStations(n.nodeID, stations);
+    if (data.lineStations.empty()) {
+        // an older export or the synthetic world:  Crucible's hub constellations, fixed
+        m_lines.SetStationLines(60004588, LineActivity::Manufacturing, 0);
+        for (auto& n : data.nodes) {
+            std::vector<uint32_t> stations(1, n.stationID);
+            for (auto& h : CrucibleHubStations())
+                if (h.hub == n.stationID)
+                    stations = h.stations;
+            m_capacity.SetNodeStations(n.nodeID, stations);
+        }
+        return;
     }
+    // the real stations:  their own lines only
+    for (auto& d : { LineActivity::Manufacturing, LineActivity::ResearchTime, LineActivity::ResearchMaterial,
+                     LineActivity::Copying, LineActivity::Invention })
+        m_lines.SetDefaultLines(d, 0);
+    for (auto& st : data.lineStations) {
+        m_lines.SetStationLines(st.stationID, LineActivity::Manufacturing, st.mfgLines);
+        m_lines.SetStationLines(st.stationID, LineActivity::Invention, st.invLines);
+    }
+    NodeStationParams sp(s_nodeStations);
+    FacilityParams fp(m_lines.Params());
+    sp.maxLineShare = fp.maxLineShare;
+    sp.minFreeLines = fp.minFreeLines;
+    m_capacity.SetStationParams(sp);
+    m_capacity.SetFreight(s_remoteFreight != 0, p.freightPerM3Jump);
+    m_capacity.SetRefineAtNodeStations(s_refineAtNode != 0);
+    if (s_lineLog)
+        m_capacity.SetLog([](const std::string& line) { std::printf("  %s\n", line.c_str()); });
+    for (auto& n : data.nodes)
+        m_capacity.SetNodeRanking(n.nodeID, LineStations::Rank(n, data.lineStations, data.systems, data.jumps, sp));
 }

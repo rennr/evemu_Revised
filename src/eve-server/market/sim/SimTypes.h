@@ -184,6 +184,7 @@ namespace MktSim {
         uint32_t lineID         = 0;    // the assembly line it holds (0:  virtual capacity, PLAN 6.6 mode false)
         int64_t  start          = 0;
         int64_t  end            = 0;
+        bool     virtualLine    = false;    // on its node's counted lines (the station lines' shortfall;  mktSimJob.state 1)
     };
 
     /* phase 4:  where the ledger keeps goods that are not at a market node (Ledger's nodeID).  a node's production sites

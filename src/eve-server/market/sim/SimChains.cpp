@@ -632,8 +632,12 @@ void World::ChainActors()
             a.capacity = (double)(plan.slots + plan.inventSlots);
             a.target = std::max(1e8, turnover * capitalDays * 100.0);
             m_actors.push_back(a);
-            if (kp.first == ActorKind::Inventor)
+            if (kp.first == ActorKind::Inventor) {
                 m_capacity->SetSlots(a.actorID, plan.slots + plan.inventSlots);
+                // the node's stations are sized from these (station lines, SimLineStations.h)
+                m_capacity->SetLineNeed(node.nodeID, Activity::Manufacturing, hours / 24.0);
+                m_capacity->SetLineNeed(node.nodeID, Activity::Invention, inventHours / 24.0);
+            }
         }
     }
     m_chainPending.clear();
@@ -980,8 +984,10 @@ void World::InventorStep(Actor& a, ChainPlan& plan, int64_t t)
         job.end = t + std::max<int64_t>(60, (int64_t)std::ceil(p.seconds * (double)units));
         if (!m_capacity->Reserve(job, t))
             break;
-        Cents lineCost(Econ::ToCents(m_capacity->JobCost(job)));
-        if (m_ledger.Sink(a.actorID, lineCost, Isk::LineCost, true) != lineCost) {
+        double m3(TravelM3(job.typeID, (double)units));
+        for (auto& in : p.inputs)
+            m3 += TravelM3(in.first, in.second * (double)units);
+        if (!PayForLine(job, m3)) {
             m_capacity->Release(job);
             continue;
         }
@@ -1080,8 +1086,10 @@ void World::InventorStep(Actor& a, ChainPlan& plan, int64_t t)
         job.end = t + std::max<int64_t>(60, (int64_t)std::ceil(p.inventSeconds * (double)n));
         if (!m_capacity->Reserve(job, t))
             break;
-        Cents lineCost(Econ::ToCents(m_capacity->JobCost(job)));
-        if (m_ledger.Sink(a.actorID, lineCost, Isk::LineCost, true) != lineCost) {
+        double m3(TravelM3(job.typeID, (double)job.qtyOut));
+        for (auto& in : p.invent)
+            m3 += TravelM3(in.first, in.second * (double)n);
+        if (!PayForLine(job, m3)) {
             m_capacity->Release(job);
             continue;
         }

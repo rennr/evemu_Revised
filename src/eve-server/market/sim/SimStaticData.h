@@ -124,6 +124,7 @@ namespace MktSim {
     struct MapSystem {
         float    security       = 0.0f;
         uint32_t regionID       = 0;
+        uint32_t constellationID = 0;   // 0:  not known (an older export)
     };
     // an npc station with a refinery, where actors can work (production sites;  staStations)
     struct MapStation {
@@ -132,6 +133,18 @@ namespace MktSim {
         uint32_t regionID       = 0;
         float    refineEfficiency = 0.5f;
         float    refineTake     = 0.05f;
+    };
+
+    /* phase 5:  an npc station with assembly lines the sim may use (FactoryDB::LineStationsForSim, the export's
+     *  logistics.lineStations):  its manufacturing and invention lines, and whether it has a refinery */
+    struct LineStation {
+        uint32_t stationID      = 0;
+        uint32_t systemID       = 0;
+        uint32_t constellationID = 0;
+        uint32_t regionID       = 0;
+        uint16_t mfgLines       = 0;
+        uint16_t invLines       = 0;
+        bool     refinery       = false;
     };
 
     /* phase 6:  how the advanced chains make things (SimChains.cpp).  quantities are units (reactions:  invTypeReactions
@@ -193,6 +206,8 @@ namespace MktSim {
         std::vector<std::pair<uint32_t, uint32_t>>          jumps;          // (from, to) solar systems
         std::vector<MapStation>                             stations;
         std::map<uint16_t, uint8_t>                         oreBands;       // ore groupID -> bands with its belts (1 << SecBand)
+        // phase 5:  the stations with lines the sim may use (the harness;  the server reads them in SimFacilityMgr)
+        std::vector<LineStation>                            lineStations;
         // phase 6:  the advanced chains (PLAN 6.4).  a product they can't make stays with the stock model
         std::vector<Recipe>                                 recipes;        // invention, reactions, planetary schematics
         std::map<uint16_t, ChainBill>                       bills;          // T2 and components -> their job's materials

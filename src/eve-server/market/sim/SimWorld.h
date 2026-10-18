@@ -687,6 +687,12 @@ namespace MktSim {
         void     ProcessStep(Actor& a, ChainPlan& plan, int64_t t);
         void     InventorStep(Actor& a, ChainPlan& plan, int64_t t);
         bool     ChainJob(const SimJob& job) const;
+        /* phase 5:  a job that booked its line pays it (Isk::LineCost) and, at a station away from its node, the freight of
+         *  m3 of inputs and output (Isk::Freight, RemoteLineFreight).  false:  the actor can't pay both (nothing is taken;
+         *  the caller releases the job) */
+        bool     PayForLine(const SimJob& job, double m3);
+        // m3 of q units of a type as it travels (ships packaged)
+        double   TravelM3(uint16_t typeID, double q) const;
         void     ChainJobDone(const SimJob& job, int64_t t);
         bool     ChainLoadJob(const SimJob& job);
         // buys fuel and burns it for hours of arrays;  returns the share of it there was (0..1)

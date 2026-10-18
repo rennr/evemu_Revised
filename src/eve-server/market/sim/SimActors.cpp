@@ -402,6 +402,8 @@ void World::BuildActors(int64_t /*now*/)
             a.capacity = std::ceil(makerHours[s] / 24.0 * (1.0 + m_p.productionSlack)) + std::max(3.0, std::ceil(products[s].size() / 20.0));
             a.target = std::max(1e8, makerCost[s] * capitalDays * 100.0);
             m_capacity->SetSlots(id, (uint32_t)a.capacity);
+            // the node's stations are sized from this (station lines, SimLineStations.h)
+            m_capacity->SetLineNeed(node.nodeID, Activity::Manufacturing, makerHours[s] / 24.0);
             m_makerPlans[id].products = products[s];
         }
         if (!loot.empty() or (na.miner != 0) or !m_nodeLosses[node.nodeID - 1].empty()) {
@@ -832,7 +834,7 @@ Units World::RefineHeld(uint32_t actorID, uint32_t nodeID, uint16_t typeID, Unit
     // what the node's refinery takes now (its soft cap, phase 5):  the rest is kept for the next step
     if ((q > 0) and (t->volume > 0.0f)) {
         double m3((double)q * t->volume);
-        double allowed(m_capacity->RefineAllowance(Node(nodeID)->stationID, m3, now));
+        double allowed(m_capacity->RefineAllowanceAtNode(nodeID, Node(nodeID)->stationID, m3, now));
         if (allowed < m3)
             q = std::min<Units>(q, (Units)std::floor(allowed / t->volume + 1e-9));
     }
@@ -1197,8 +1199,10 @@ void World::ManufacturerStep(Actor& a, int64_t t, double /*dt*/)
         job.end = t + std::max<int64_t>(60, (int64_t)std::ceil(cand.hoursPerUnit * (double)job.qtyOut * 3600.0));
         if (!m_capacity->Reserve(job, t))
             break;
-        Cents lineCost(Econ::ToCents(m_capacity->JobCost(job)));
-        if (m_ledger.Sink(a.actorID, lineCost, Isk::LineCost, true) != lineCost) {
+        double m3(TravelM3(job.typeID, (double)job.qtyOut));
+        for (auto& in : perRun)
+            m3 += TravelM3(in.first, (double)(in.second * feasible));
+        if (!PayForLine(job, m3)) {
             m_capacity->Release(job);
             continue;       // can't pay the line:  the inputs wait
         }
@@ -1213,6 +1217,28 @@ void World::ManufacturerStep(Actor& a, int64_t t, double /*dt*/)
         m_jobsChanged = true;
         --lines;
     }
+}
+
+double World::TravelM3(uint16_t typeID, double q) const
+{
+    const TypeData* t(m_static.Type(typeID));
+    return (t == nullptr) ? 0.0 : q * Logi::PackagedVolume(*t);
+}
+
+bool World::PayForLine(const SimJob& job, double m3)
+{
+    Cents lineCost(Econ::ToCents(m_capacity->JobCost(job)));
+    Cents freight(Econ::ToCents(m_capacity->Freight(job, m3)));
+    if (freight > 0) {
+        const Ledger::Account* acct(m_ledger.FindAcct(job.actorID));
+        if ((acct == nullptr) or (acct->wallet < lineCost + freight))
+            return false;
+    }
+    if (m_ledger.Sink(job.actorID, lineCost, Isk::LineCost, true) != lineCost)
+        return false;
+    if (freight > 0)
+        m_ledger.Sink(job.actorID, freight, Isk::Freight, true);
+    return true;
 }
 
 void World::CompleteJob(uint32_t jobID, int64_t t)

@@ -122,7 +122,7 @@ namespace {
         World world(data, p, market);
         market.SetWorld(&world);
         // the manufacturers and inventors on the hubs' station lines (phase 5), as in the phase 3 and 4 tests
-        HarnessCapacity lines(data.nodes, p);
+        HarnessCapacity lines(data, p);
         world.SetCapacity(lines.Capacity());
         world.SetDayHook([&out](const DayReport& r) {
             if ((r.audit.iskResidual != 0) or (r.audit.goodsResidualTypes != 0))

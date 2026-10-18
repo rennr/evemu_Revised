@@ -54,6 +54,7 @@ SET( core_INCLUDE
      "${SERVER_SOURCE_DIR}/market/sim/SimEconomy.h"
      "${SERVER_SOURCE_DIR}/market/sim/SimFacilities.h"
      "${SERVER_SOURCE_DIR}/market/sim/SimLineCapacity.h"
+     "${SERVER_SOURCE_DIR}/market/sim/SimLineStations.h"
      "${SERVER_SOURCE_DIR}/market/sim/SimLedger.h"
      "${SERVER_SOURCE_DIR}/market/sim/SimLogistics.h"
      "${SERVER_SOURCE_DIR}/market/sim/SimProduction.h"
@@ -69,6 +70,7 @@ SET( core_SOURCE
      "${SERVER_SOURCE_DIR}/market/sim/SimFacilities.cpp"
      "${SERVER_SOURCE_DIR}/market/sim/SimHaulers.cpp"
      "${SERVER_SOURCE_DIR}/market/sim/SimLineCapacity.cpp"
+     "${SERVER_SOURCE_DIR}/market/sim/SimLineStations.cpp"
      "${SERVER_SOURCE_DIR}/market/sim/SimLedger.cpp"
      "${SERVER_SOURCE_DIR}/market/sim/SimLogistics.cpp"
      "${SERVER_SOURCE_DIR}/market/sim/SimProduction.cpp"
@@ -104,6 +106,9 @@ ADD_TEST( NAME "MarketSimWorldTest"
           COMMAND "${TARGET_NAME}" --test world )
 ADD_TEST( NAME "MarketSimFacilitiesTest"
           COMMAND "${TARGET_NAME}" --test facilities )
+# the hubs' node stations on the real export (MKTSIM_EXPORT=<export.json>;  skipped without it)
+ADD_TEST( NAME "MarketSimNodeStationsGolden"
+          COMMAND "${TARGET_NAME}" --test nodestations-golden )
 ADD_TEST( NAME "MarketSimProductionTest"
           COMMAND "${TARGET_NAME}" --test production )
 ADD_TEST( NAME "MarketSimActorsTest"

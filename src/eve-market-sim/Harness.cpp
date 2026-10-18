@@ -159,6 +159,17 @@ namespace {
             // phase 5:  the hubs' station lines (HarnessCapacity)
             {"MaxLineShare", [&](double v) { SetHarnessLineShare(v, -1); }},
             {"MinFreeLinesPerStation", [&](double v) { SetHarnessLineShare(0.0, (int)v); }},
+            // phase 5:  the nodes' stations (SimLineStations.h)
+            {"NodeMinLineStations", [&](double v) { HarnessNodeStations().minStations[LineKind::Mfg] = (uint32_t)v; }},
+            {"NodeMinResearchStations", [&](double v) { HarnessNodeStations().minStations[LineKind::Inv] = (uint32_t)v; }},
+            {"NodeStationMaxJumps", [&](double v) { HarnessNodeStations().maxJumps = (uint32_t)v; }},
+            {"NodeScaleWithNeed", [&](double v) { HarnessNodeStations().scaleWithNeed = (v != 0.0); }},
+            {"NodeLineHeadroom", [&](double v) { HarnessNodeStations().headroom = v; }},
+            {"NodeMaxStations", [&](double v) { HarnessNodeStations().maxStations = std::max<uint32_t>(1, (uint32_t)v); }},
+            {"NodeStationSameBand", [&](double v) { HarnessNodeStations().sameBand = (v != 0.0); }},
+            {"VirtualLinesForShortfall", [&](double v) { HarnessNodeStations().virtualFill = (v != 0.0); }},
+            {"RemoteLineFreight", [&](double v) { SetHarnessNodeExtras((v != 0.0) ? 1 : 0, -1); }},
+            {"RefineAtNodeStations", [&](double v) { SetHarnessNodeExtras(-1, (v != 0.0) ? 1 : 0); }},
             // the calibration's per type parameters, scaled (harness only:  StaticData's tuning multipliers)
             {"HalfSpreadScale", [&](double v) { o.halfSpreadScale = (float)v; }},
             {"StockElasticityScale", [&](double v) { o.stockElasticityScale = (float)v; }},
@@ -324,6 +335,27 @@ namespace {
         return bad;
     }
 
+    /* per node and activity:  the most and the mean of its jobs on lines, against the sim lines its stations count and
+     *  the counted lines serving its shortfall, and the bookings refused.  one '[info] lines' row each (sweep.py keeps them) */
+    void PrintLineUse(LineCapacity& cap, int64_t now)
+    {
+        for (auto id : cap.NodeIDs()) {
+            const LineCapacity::NodeLines* n(cap.Node(id));
+            if ((n == nullptr) or !n->ranked)
+                continue;
+            for (uint8_t k = 0; k < LineKind::Count; ++k) {
+                const LineCapacity::KindStats& st(n->stats[k]);
+                double booked(n->choice.have[k] + n->virtualLines[k]);
+                std::printf("  [info] lines node %u %s:  peak %u / %.0f (%.2f), mean %.1f;  stations %u, sim lines %.0f, counted %u (peak %u);"
+                            "  need %.1f, wanted %.1f;  refused %llu\n", id, LineKind::Name(k), st.peak, booked,
+                            (booked > 0.0) ? st.peak / booked : 0.0, st.Mean(), n->choice.stations[k], n->choice.have[k],
+                            n->virtualLines[k], st.virtualPeak, n->choice.need[k], n->choice.wanted[k],
+                            (unsigned long long)st.reserveShort);
+            }
+        }
+        (void)now;
+    }
+
     RunResult Run(const StaticData& data, Params p, uint64_t seed, const Options& opt, const std::vector<ShockSpec>& shocks)
     {
         RunResult res;
@@ -335,7 +367,7 @@ namespace {
         HarnessMarket market(data, p.salesTaxRate);
         World world(data, p, market);
         market.SetWorld(&world);
-        HarnessCapacity lines(data.nodes, p);
+        HarnessCapacity lines(data, p);
         if (opt.stationLines)
             world.SetCapacity(lines.Capacity());
         world.Build(StartTime);
@@ -787,6 +819,9 @@ namespace {
         res.simDays = dayNo;
         res.orderWrites = market.Writes();
         res.liveOrders = world.LiveOrders();
+        // phase 5:  what each node held of its lines (the export's real stations)
+        if (opt.stationLines and !data.lineStations.empty())
+            PrintLineUse(*lines.Capacity(), 0);
         if (!opt.exportCsv.empty())
             world.ExportCsv(opt.exportCsv);
         if (writeHistory) {
@@ -812,6 +847,7 @@ namespace {
                     "                      [--scenario file] [--audit-csv file] [--no-bots] [--verbose] [--actors] [--phase3] [--phase4]\n"
                     "                      [--virtual-lines] [--no-logistics] [--no-repeat] [--export cells.csv] [--history-csv file]\n"
                     "                      [--phase6] [--trace typeID [--trace-node N]] [--pull-apart sigma]\n"
+                    "                      [--line-need] [--node-stations N[,R]] [--node-max-jumps J]\n"
                     "       eve-market-sim --test <name>\n");
     }
 }
@@ -824,7 +860,7 @@ int Phase6Main(const StaticData& data, const Params& p, const std::vector<uint64
 int HarnessMain(int argc, char** argv)
 {
     Options opt;
-    bool noLogistics(false);
+    bool noLogistics(false), lineNeed(false);
     for (int i = 1; i < argc; ++i) {
         std::string a(argv[i]);
         auto next = [&]() -> const char* { return (i + 1 < argc) ? argv[++i] : ""; };
@@ -875,6 +911,17 @@ int HarnessMain(int argc, char** argv)
             opt.repeat = false;
         else if (a == "--history-csv")
             opt.historyCsv = next();
+        else if (a == "--line-need")
+            lineNeed = true;
+        else if (a == "--node-stations") {
+            // N[,R]:  NodeMinLineStations, NodeMinResearchStations
+            std::string v(next());
+            HarnessNodeStations().minStations[LineKind::Mfg] = (uint32_t)std::atoi(v.c_str());
+            size_t comma(v.find(','));
+            if (comma != std::string::npos)
+                HarnessNodeStations().minStations[LineKind::Inv] = (uint32_t)std::atoi(v.c_str() + comma + 1);
+        } else if (a == "--node-max-jumps")
+            HarnessNodeStations().maxJumps = (uint32_t)std::atoi(next());
         else {
             Usage();
             return 2;
@@ -900,6 +947,9 @@ int HarnessMain(int argc, char** argv)
         }
         if (opt.regional)
             std::printf("regional nodes:  %zu added\n", AddRegionalNodes(data));
+        if (data.lineStations.empty())
+            std::printf("warning:  the export has no lineStations (an older generator):  the hubs work at Crucible's constellation"
+                        " stations with synthetic research lines, not at their real stations;  regenerate it\n");
     } else {
         BuildSynthetic(data, 20111129, opt.scale);
     }
@@ -918,6 +968,25 @@ int HarnessMain(int argc, char** argv)
     std::printf("market sim harness:  %zu types, %zu nodes, %zu vendor offers, %d days, %zu seed(s), EconomyScale %g\n",
                 data.types.size(), data.nodes.size(), data.vendors.size(), opt.days, opt.seeds.size(), p.economyScale);
 
+    // --line-need:  each node's line need, wanted lines, stations and shortfall at the build;  no day is simulated
+    if (lineNeed) {
+        if (data.lineStations.empty())
+            std::printf("line need:  the export has no lineStations (an older generator):  the hubs' fixed stations, no need term\n");
+        SetHarnessLineLog(true);
+        p.seed = opt.seeds[0];
+        HarnessMarket market(data, p.salesTaxRate);
+        World world(data, p, market);
+        market.SetWorld(&world);
+        HarnessCapacity lines(data, p);
+        world.SetCapacity(lines.Capacity());
+        world.Build(StartTime);
+        for (auto id : lines.Capacity()->NodeIDs())
+            std::printf("%s", lines.Capacity()->NodeDetail(id, StartTime).c_str());
+        PrintLineUse(*lines.Capacity(), StartTime);
+        return 0;
+    }
+    if (opt.actors)
+        SetHarnessLineLog(true);
     if (opt.phase6)
         return Phase6Main(data, p, opt.seeds, opt.days);
     if (opt.phase3)

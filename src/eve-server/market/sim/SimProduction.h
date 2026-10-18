@@ -81,6 +81,15 @@ namespace Prod {
         virtual double   JobCost(const SimJob& job) const = 0;
         // m3 of ore the station refines for the sim now, of m3 wanted (a refinery's soft cap:  the rest waits)
         virtual double   RefineAllowance(uint32_t /*stationID*/, double m3, int64_t /*now*/)  { return m3; }
+        // the same for a node whose station is stationID (station lines:  over the refineries of its stations)
+        virtual double   RefineAllowanceAtNode(uint32_t /*nodeID*/, uint32_t stationID, double m3, int64_t now)
+                                                        { return RefineAllowance(stationID, m3, now); }
+        // isk the job pays to bring m3 of inputs and output between its station and its node (a sink, Isk::Freight)
+        virtual double   Freight(const SimJob& /*job*/, double /*m3*/) const     { return 0.0; }
+        /* World::Build:  the calibrated line need of a node's actors (average busy lines of the activity), then Finalize
+         *  once they are all given (station lines size each node's stations from it).  before Finalize nothing books */
+        virtual void     SetLineNeed(uint32_t /*nodeID*/, uint8_t /*activity*/, double /*avgLines*/)   { }
+        virtual void     Finalize()                     { }
     };
 
     // PLAN 6.6 mode UseRealAssemblyLines = false:  per actor slot counters, nothing written

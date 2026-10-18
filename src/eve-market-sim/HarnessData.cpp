@@ -76,11 +76,12 @@ namespace {
         s_regional.clear();
         if (lg.IsNull())
             return;
-        // [systemID, security, regionID]
+        // [systemID, security, regionID(, constellationID)]
         for (auto& r : lg["systems"].a) {
             MapSystem s;
             s.security = (float)r[1].Num();
             s.regionID = (uint32_t)r[2].Num();
+            s.constellationID = (r.a.size() > 3) ? (uint32_t)r[3].Num() : 0;
             data.systems[(uint32_t)r[0].Num()] = s;
         }
         for (auto& r : lg["jumps"].a)
@@ -104,6 +105,19 @@ namespace {
         }
         for (auto& r : lg["regional"].a)
             s_regional.push_back(std::make_pair((uint32_t)r[0].Num(), (uint32_t)r[1].Num()));
+        // phase 5:  [stationID, systemID, constellationID, regionID, mfgLines, invLines, refinery] (an older export:  none)
+        data.lineStations.clear();
+        for (auto& r : lg["lineStations"].a) {
+            LineStation st;
+            st.stationID = (uint32_t)r[0].Num();
+            st.systemID = (uint32_t)r[1].Num();
+            st.constellationID = (uint32_t)r[2].Num();
+            st.regionID = (uint32_t)r[3].Num();
+            st.mfgLines = (uint16_t)r[4].Num();
+            st.invLines = (uint16_t)r[5].Num();
+            st.refinery = (r.a.size() > 6) and (r[6].Num() != 0.0);
+            data.lineStations.push_back(st);
+        }
     }
 
     struct Gen {

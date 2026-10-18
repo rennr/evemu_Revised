@@ -325,6 +325,8 @@ void World::Build(int64_t now)
      *  producer per node and class */
     if (m_p.actors)
         BuildActors(now);
+    // station lines:  each node's stations are sized from the line need its actors gave (nothing books before)
+    m_capacity->Finalize();
     for (auto& c : m_cells) {
         if (c.supply != Supply::Abstract)
             continue;

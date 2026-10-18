@@ -126,7 +126,7 @@ namespace {
         HarnessMarket market(data, p.salesTaxRate);
         World world(data, p, market);
         market.SetWorld(&world);
-        HarnessCapacity lines(data.nodes, p);
+        HarnessCapacity lines(data, p);
         if (stationLines)
             world.SetCapacity(lines.Capacity());
         world.Build(StartTime);
