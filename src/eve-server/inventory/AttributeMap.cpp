@@ -437,21 +437,15 @@ bool AttributeMap::SendChanges(PyTuple* attrChange) {
     if (attrChange == nullptr)
         return true;
 
-    /** @todo update this to use my new multicast replacement */
-    if (IsPlayerCorp(mItem.ownerID())) {
-        // there is no code to get corp AND loc in multicast.  it sends to both
-        MulticastTarget mct;
-        mct.corporations.insert(mItem.ownerID());
-        if (sDataMgr.IsStation(mItem.locationID())) {
-            mct.locations.insert(mItem.locationID());
-            sEntityList.Multicast("OnItemChange", "*stationid&corpid", &attrChange, mct);
-        } else {
-            sEntityList.Multicast("OnItemChange", "corpid", &attrChange, mct);
-        }
-    }
-
-    if (IsCorp(mItem.ownerID()))
+    /* corp-owned items (structures, corp hangar items) get no attribute notification.  this used to multicast the change
+     *  to the corp as "OnItemChange", which the client calls as OnItemChange(item, change) with the change's 7 fields
+     *  (TypeError, "takes exactly 3 arguments (8 given)").  as OnModuleAttributeChanges it would not help either:  godma
+     *  drops a change whose owner is not the session's character (godma.py OnModuleAttributeChange_)
+     */
+    if (IsCorp(mItem.ownerID())) {
+        PySafeDecRef(attrChange);
         return true;
+    }
 
     Client* pClient(nullptr);
     if (IsCharacterID(mItem.itemID())) {
@@ -462,12 +456,15 @@ bool AttributeMap::SendChanges(PyTuple* attrChange) {
 
     if (pClient == nullptr) {
         _log(PLAYER__WARNING, "AttributeMap::SendChanges() - ownerID for %u not found", mItem.itemID() );
+        PySafeDecRef(attrChange);
         return false;
     }
 
     // avoid flooding the client on login
-    if (pClient->IsLogin())
+    if (pClient->IsLogin()) {
+        PySafeDecRef(attrChange);
         return true;
+    }
 
     if (is_log_enabled(ATTRIBUTE__CHANGE)) {
         _log(ATTRIBUTE__CHANGE, "Sending Attribute changes for %s(%u)", mItem.name(), mItem.itemID());
