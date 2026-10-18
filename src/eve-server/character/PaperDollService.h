@@ -54,6 +54,9 @@ protected:
 
 private:
 	PaperDollDB m_db;
+
+    // the doll KeyVal (colors, modifiers, appearance, sculpts) the client builds a character from
+    PyRep* GetDollData(uint32 charID);
 };
 
 #endif // __PAPERDOLLSERVICE__H__INCL__

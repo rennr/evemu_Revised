@@ -71,9 +71,19 @@ PaperDollService::PaperDollService() :
 //17:35:32 L PaperDollService::Handle_GetPaperDollData(): size=1
 PyResult PaperDollService::GetPaperDollData(PyCallArgs &call, PyInt* characterID) {
     call.Dump(PLAYER__CALL_DUMP);
-    // this is called when viewing full body of a character.
+    // this is called when viewing full body of a character (any character:  info window, character creation).
+    //  the client applies it like its own doll (character.py ApplyDBRowToDoll), so it is the same KeyVal
+    return GetDollData(characterID->value());
+}
 
-    return m_db.GetPaperDollAvatarColors(characterID->value());
+PyRep* PaperDollService::GetDollData(uint32 charID)
+{
+    PyDict* args = new PyDict;
+    args->SetItemString( "colors", m_db.GetPaperDollAvatarColors(charID) );
+    args->SetItemString( "modifiers", m_db.GetPaperDollAvatarModifiers(charID) );
+    args->SetItemString( "appearance", m_db.GetPaperDollAvatar(charID) );
+    args->SetItemString( "sculpts", m_db.GetPaperDollAvatarSculpts(charID) );
+    return new PyObject("util.KeyVal", args);
 }
 
 PyResult PaperDollService::ConvertAndSavePaperDoll(PyCallArgs &call) {
@@ -186,12 +196,5 @@ PyResult PaperDollService::GetMyPaperDollData(PyCallArgs &call, PyInt* character
         charID = characterID->value();
     }
 
-	PyDict* args = new PyDict;
-
-	args->SetItemString( "colors", m_db.GetPaperDollAvatarColors(charID) );
-	args->SetItemString( "modifiers", m_db.GetPaperDollAvatarModifiers(charID) );
-	args->SetItemString( "appearance", m_db.GetPaperDollAvatar(charID) );
-	args->SetItemString( "sculpts", m_db.GetPaperDollAvatarSculpts(charID) );
-
-    return new PyObject("util.KeyVal", args);
+    return GetDollData(charID);
 }
