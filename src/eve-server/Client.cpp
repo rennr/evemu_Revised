@@ -1868,10 +1868,16 @@ void Client::SetInvulTimer(uint32 time/*Player::Timer::Default*/)
         return;
     }
 
+    // the timer is only cleared by the in-space tick, so one set while docked (login) is still enabled, expired, at undock.
+    //  a new invul request restarts it;  a longer one still running is kept
     if (m_invulTimer.Enabled()) {
-        _log(CLIENT__ERROR, "%s: Invul Timer called but timer already enabled with %ums remaining.", m_char->name(), m_invulTimer.GetRemainingTime());
-        EvE::traceStack();
-        return;
+        uint32 remaining = m_invulTimer.GetRemainingTime();
+        if (remaining >= time) {
+            _log(CLIENT__TIMER, "%s: Invul Timer kept with %ums remaining (asked for %ums).", m_char->name(), remaining, time);
+            return;
+        }
+        _log(CLIENT__TIMER, "%s: Invul Timer restarted with %ums remaining.", m_char->name(), remaining);
+        m_invulTimer.Disable();     // Start() on an enabled timer keeps its old start time
     }
 
     _log(CLIENT__TIMER, "%s: Invul Timer set at %ums.   current state time is %ums", m_char->name(), time, m_invulTimer.GetCurrentTime());
