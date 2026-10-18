@@ -65,7 +65,7 @@ public:
     PyObjectEx *GetMapObjects(uint32 entityID, bool wantRegions, bool wantConstellations, bool wantSystems, bool wantStations);
     PyObject *GetMap(uint32 solarSystemID);
     PyObject *GetMapOffices(uint32);
-    PyObject *GetMapConnections(uint32, bool, bool, bool, uint16, uint16);
+    PyRep* GetMapConnections(uint32, bool, bool, bool, uint16, uint16);
     PyObject *ListLanguages();
     PyRep *GetStationSolarSystemsByOwner(uint32 ownerID);
     PyRep *GetCelestialStatistic(uint32 celestialID);

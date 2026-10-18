@@ -534,27 +534,27 @@ PyObject *ConfigDB::GetMapOffices(uint32 solarSystemID) {
 }
 
 /** @todo more map data in /eve/client/script/ui/shared/maps/mapcommon.py */
-PyObject *ConfigDB::GetMapConnections(uint32 id, bool sol, bool reg, bool con, uint16 cel, uint16 _c) {
-  sLog.Warning ("ConfigDB::GetMapConnections", "DB query - System:%u, Sol:%u, Reg:%u, Con:%u, Cel:%u, cached:%u", id, sol, reg, con, cel, _c);
-    const char *key = "fromsol";
-    if (sol) {
-        key = "fromsol";
+PyRep* ConfigDB::GetMapConnections(uint32 id, bool sol, bool reg, bool con, uint16 cel, uint16 _c) {
+    std::string where;
+    if (id == 9) {      // const.locationUniverse
+        // every connection
+    } else if (sol) {
+        where = " WHERE fromsol = " + std::to_string(id);
     } else if (reg) {
-        key = "fromreg";
+        where = " WHERE fromreg = " + std::to_string(id);
     } else if (con) {
-        key = "fromcon";
+        where = " WHERE fromcon = " + std::to_string(id);
     } else {
-        sLog.Error ("ConfigDB::GetMapConnections()", "Bad argument (id: %u, sol: %u, reg: %u, con: %u) passed to key.", id, sol, reg, con );
+        _log(DATABASE__ERROR, "ConfigDB::GetMapConnections() - no level flag for id %u (sol %u, reg %u, con %u)", id, sol, reg, con);
+        return new PyList();
     }
 
     DBQueryResult res;
     if (!sDatabase.RunQuery(res,
         "SELECT ctype, fromreg, fromcon, fromsol, stargateID, celestialID, tosol, tocon, toreg"
-        " FROM mapConnections"
-        " WHERE %s = %u", key, id )) {
+        " FROM mapConnections%s", where.c_str())) {
         codelog(DATABASE__ERROR, "Error in GetMapConnections query: %s", res.error.c_str());
-            sLog.Error ("ConfigDB::GetMapConnections()", "No Data for key: %s, id: %u.", key, id);
-            return nullptr;
+        return new PyList();
     }
     return DBResultToRowset(res);
 }

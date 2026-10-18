@@ -223,17 +223,20 @@ PyResult ConfigService::GetMultiInvTypesEx(PyCallArgs &call, PyList* typeIDs) {
 
 //02:10:35 L ConfigService::Handle_GetMapConnections(): size= 6
 //15:12:56 W ConfigDB::GetMapConnections: DB query - System:20000307, B1:0, B2:0, B3:1, Cel:0, _c:1  <-- this means cached
-PyResult ConfigService::GetMapConnections(PyCallArgs &call, PyInt* itemID, PyInt* reg, PyInt* con, PyInt* sol, PyInt* cel, PyInt* _c) {
-/**
-        this is cached on clientside.  only called if not in client cache
-*/
-    /** @todo check into id sending.... 9 is EvE Universe and 9000001 is EvE WormHole Universe */
-    if (itemID->value() == 9 || sol->value()) {
-        //sLog.Warning( "ConfigService::Handle_GetMapConnections()::args.id = 9 | args.sol");
-        return m_db.GetMapConnections(call.client->GetSystemID(), sol->value(), reg->value(), con->value(), cel->value(), _c->value());
-    } else {
-        return m_db.GetMapConnections(itemID->value(), sol->value(), reg->value(), con->value(), cel->value(), _c->value());
-    }
+PyResult ConfigService::GetMapConnections(PyCallArgs &call, PyInt* itemID, PyRep* reg, PyRep* con, PyRep* sol, PyRep* cel, PyRep* _c) {
+    /*  cached on the client side, so only called when the client's cache misses:
+     *    map2D.GetConnectionData:  GetItemConnections(id, drawlevel == 1, drawlevel == 2, drawlevel == 3, 0, 1)   (bools)
+     *    mapSvc:  GetMapConnections(const.locationUniverse, 0, 0, 1)                                              (ints)
+     *  the flag says what id is (region, constellation, solar system);  the universe (9) asks for every connection
+     */
+    auto truth = [](PyRep* rep) -> bool {
+        if (rep == nullptr or rep->IsNone())
+            return false;
+        if (rep->IsBool())
+            return rep->AsBool()->value();
+        return PyRep::IntegerValue(rep) != 0;
+    };
+    return m_db.GetMapConnections(itemID->value(), truth(sol), truth(reg), truth(con), truth(cel), truth(_c));
 }
 
 PyResult ConfigService::GetStationSolarSystemsByOwner(PyCallArgs &call, PyInt* ownerID) {
