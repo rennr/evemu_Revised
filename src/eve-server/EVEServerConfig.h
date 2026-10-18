@@ -683,8 +683,8 @@ public:
 
     // From <sov>
     struct {
-        float MilitaryPointsPerBountyISK;   // military index points per isk of npc bounty killed in the system
-        float IndustrialPointsPerM3;        // industrial index points per m3 of ore and ice mined in the system
+        float MilitaryPointsPerBountyISK;   // military index points per isk of npc bounty killed in the system (0.1)
+        float IndustrialPointsPerM3;        // industrial index points per m3 of ore and ice mined in the system (1.6, the Bloodtear 2010 fit)
         uint32 DevIndexDecayPerHour;        // points (client devIndexUtil.devIndexDecayRate; other values desync the client's level bars)
     } sov;
 

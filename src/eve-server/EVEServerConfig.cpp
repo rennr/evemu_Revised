@@ -577,7 +577,7 @@ EVEServerConfig::EVEServerConfig()
 
     // sov
     sov.MilitaryPointsPerBountyISK = 0.1f;
-    sov.IndustrialPointsPerM3 = 1.0f;
+    sov.IndustrialPointsPerM3 = 1.6f;
     sov.DevIndexDecayPerHour = 100000;
 
     // pos
