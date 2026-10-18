@@ -14,6 +14,7 @@
 #include "../../eve-server.h"
 
 #include "system/sov/SovereigntyDB.h"
+#include "EVE_DevIndex.h"
 
 //Shiny multi-index containers
 #include <boost/multi_index_container.hpp>
@@ -27,26 +28,7 @@
 
 class SystemManager;
 
-/* development indices  (client devIndexUtil.py)
- *  military and industrial indices run in bands of devIndexDecayRate * devIndexDecayTime points (levels 0..5)
- *  the strategic index is the time since the system was claimed
- */
-namespace DevIndex {
-    const int64 LevelSize   = 9600000;          // devIndexDecayRate(100000) * devIndexDecayTime(96)
-    const int64 MaxPoints   = LevelSize * 6;    // top of the level 5 band
-    // gain modifiers by current band
-    const float MilitaryMod[6]   = {5.0f, 2.0f, 1.0f, 0.75f, 0.5f, 0.25f};
-    const float IndustrialMod[6] = {4.0f, 2.0f, 1.0f, 0.5f, 0.25f, 0.125f};
-    // days of sovereignty for strategic levels 1..5  (timeIndexLevels)
-    const uint8 TimeLevelDays[6] = {0, 7, 21, 35, 65, 100};
-
-    // level used for upgrade requirements:  count of band tops strictly below points, max 5  (sovSvc.GetDevIndexLevel)
-    uint8 LevelForPoints(int64 points);
-    // band the points are in, for gain modifiers
-    uint8 BandForPoints(int64 points);
-    // highest strategic level reached after this many whole days  (GetTimeIndexLevelForDays)
-    uint8 LevelForClaimDays(int64 days);
-}
+/* development indices:  bands, modifiers and strategic days (client devIndexUtil.py) in EVE_DevIndex.h */
 
 namespace Sov {
     namespace Upgrade {

@@ -39,6 +39,7 @@ SET( npcai_SOURCE
      "npcai/NpcPolishTest.cpp" )
 SET( utils_SOURCE
      "utils/DbBoolTest.cpp"
+     "utils/DevIndexRulesTest.cpp"
      "utils/DogmaOrderTest.cpp"
      "utils/EvilNumberTest.cpp"
      "utils/CustomsRulesTest.cpp"
@@ -104,6 +105,8 @@ ADD_TEST( NAME "SkillMathTest"
           COMMAND "${TARGET_NAME}" "utils/SkillMathTest" )
 ADD_TEST( NAME "SovRulesTest"
           COMMAND "${TARGET_NAME}" "utils/SovRulesTest" )
+ADD_TEST( NAME "DevIndexRulesTest"
+          COMMAND "${TARGET_NAME}" "utils/DevIndexRulesTest" )
 ADD_TEST( NAME "StructureTimingTest"
           COMMAND "${TARGET_NAME}" "utils/StructureTimingTest" )
 ADD_TEST( NAME "CustomsRulesTest"

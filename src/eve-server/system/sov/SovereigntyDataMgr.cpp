@@ -33,30 +33,6 @@
 #include "system/SystemManager.h"
 #include "system/cosmicMgrs/AnomalyMgr.h"
 
-uint8 DevIndex::LevelForPoints(int64 points)
-{
-    uint8 level(0);
-    while ((level < 5) and (LevelSize * (level + 1) < points))
-        ++level;
-    return level;
-}
-
-uint8 DevIndex::BandForPoints(int64 points)
-{
-    if (points <= 0)
-        return 0;
-    int64 band(points / LevelSize);
-    return (band > 5 ? 5 : (uint8)band);
-}
-
-uint8 DevIndex::LevelForClaimDays(int64 days)
-{
-    for (uint8 level = 5; level > 0; --level)
-        if (days >= TimeLevelDays[level])
-            return level;
-    return 0;
-}
-
 SovereigntyDataMgr::SovereigntyDataMgr()
 {
     m_sovData.clear();
@@ -746,10 +722,10 @@ void SovereigntyDataMgr::AddMilitaryActivity(uint32 systemID, double bountyISK)
         return;
 
     DevIndexData& data = GetDevIndex(systemID);
-    int64 points = (int64)(bountyISK * sConfig.sov.MilitaryPointsPerBountyISK * DevIndex::MilitaryMod[DevIndex::BandForPoints(data.military)]);
+    int64 points = DevIndex::GainPoints(bountyISK * sConfig.sov.MilitaryPointsPerBountyISK, data.military, true);
     if (points < 1)
         return;
-    data.military = std::min(DevIndex::MaxPoints, data.military + points);
+    data.military = DevIndex::AddPoints(data.military, points);
     data.militaryGain += points;
     data.dirty = true;
     _log(SOV__DEBUG, "AddMilitaryActivity() - %lli points in %u (now %lli)", points, systemID, data.military);
@@ -761,10 +737,10 @@ void SovereigntyDataMgr::AddIndustrialActivity(uint32 systemID, double m3)
         return;
 
     DevIndexData& data = GetDevIndex(systemID);
-    int64 points = (int64)(m3 * sConfig.sov.IndustrialPointsPerM3 * DevIndex::IndustrialMod[DevIndex::BandForPoints(data.industrial)]);
+    int64 points = DevIndex::GainPoints(m3 * sConfig.sov.IndustrialPointsPerM3, data.industrial, false);
     if (points < 1)
         return;
-    data.industrial = std::min(DevIndex::MaxPoints, data.industrial + points);
+    data.industrial = DevIndex::AddPoints(data.industrial, points);
     data.industrialGain += points;
     data.dirty = true;
     _log(SOV__DEBUG, "AddIndustrialActivity() - %lli points in %u (now %lli)", points, systemID, data.industrial);
@@ -775,16 +751,16 @@ void SovereigntyDataMgr::Decay(DevIndexData& data, int64 now, bool hourly)
     if (now <= data.lastDecay)
         return;
 
-    int64 decay = (int64)(sConfig.sov.DevIndexDecayPerHour * ((double)(now - data.lastDecay) / Win32Time_Hour));
+    int64 decay = DevIndex::DecayAmount(now - data.lastDecay, sConfig.sov.DevIndexDecayPerHour);
     if (hourly) {
         // an index is rising while its activity outpaces the decay
-        data.militaryIncreasing = (data.militaryGain > decay);
-        data.industrialIncreasing = (data.industrialGain > decay);
+        data.militaryIncreasing = DevIndex::IsIncreasing(data.militaryGain, decay);
+        data.industrialIncreasing = DevIndex::IsIncreasing(data.industrialGain, decay);
         data.militaryGain = 0;
         data.industrialGain = 0;
     }
-    data.military = std::max<int64>(0, data.military - decay);
-    data.industrial = std::max<int64>(0, data.industrial - decay);
+    data.military = DevIndex::DecayPoints(data.military, decay);
+    data.industrial = DevIndex::DecayPoints(data.industrial, decay);
     data.lastDecay = now;
     data.dirty = true;
 }
