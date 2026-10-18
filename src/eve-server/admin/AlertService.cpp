@@ -39,6 +39,7 @@ AlertService::AlertService() :
     this->Add("BeanDelivery", static_cast<PyResult (AlertService::*)(PyCallArgs &, PyList*)>(&AlertService::BeanDelivery));
     this->Add("GroupBeanDelivery", &AlertService::GroupBeanDelivery);
     this->Add("SendClientStackTraceAlert", &AlertService::SendClientStackTraceAlert);
+    this->Add("GetLogModeForError", &AlertService::GetLogModeForError);
 
     if (sConfig.debug.StackTrace or is_log_enabled(CLIENT__STACK_TRACE))
         traceLogger = new PyTraceLog("evemu_client_stack_trace.txt", true, true);
@@ -76,6 +77,18 @@ PyResult AlertService::BeanCount(PyCallArgs &call, PyRep* stackIDHash) {
 /** The client counts repeats of known errors and sends them every BEAN_DELEVERY_TIME minutes:
   *  {errorID: (count, lastFileTime)}
   */
+/* the client's periodic log-mode refresh (alert.py UpdateLogModes):
+ *    changes, flooded = sm.ProxySvc('alert').GetLogModeForError(self.stacktraceLogMode)
+ *  changes is {errorHash: newLogMode} and flooded a list of errorIDs.  the server keeps no per-error modes, so nothing changes
+ */
+PyResult AlertService::GetLogModeForError(PyCallArgs &call, PyRep* errorIDs)
+{
+    PyTuple* result = new PyTuple(2);
+        result->SetItem(0, new PyDict());
+        result->SetItem(1, new PyList());
+    return result;
+}
+
 PyResult AlertService::BeanDelivery(PyCallArgs& call, PyDict* beans)
 {
     for (PyDict::const_iterator itr = beans->begin(); itr != beans->end(); ++itr) {

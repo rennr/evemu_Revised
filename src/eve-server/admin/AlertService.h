@@ -37,6 +37,7 @@ public:
 
 protected:
     PyResult BeanCount(PyCallArgs &call, PyRep* stackIDHash);
+    PyResult GetLogModeForError(PyCallArgs &call, PyRep* errorIDs);
     PyResult BeanDelivery(PyCallArgs &call, PyDict* beans);
     PyResult BeanDelivery(PyCallArgs &call, PyList* beans);
     PyResult GroupBeanDelivery(PyCallArgs &call, PyRep* compressedBeans);
