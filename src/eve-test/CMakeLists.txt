@@ -49,6 +49,7 @@ SET( utils_SOURCE
      "utils/OutpostRulesTest.cpp"
      "utils/SkillMathTest.cpp"
      "utils/SovRulesTest.cpp"
+     "utils/StoreRulesTest.cpp"
      "utils/StructureTimingTest.cpp" )
 
 ########################
@@ -70,9 +71,12 @@ CREATE_TEST_SOURCELIST( TARGET_SOURCELIST "eve-test.cpp"
                         EXTRA_INCLUDE "eve-test.h" )
 # the npc ai formulas (eve-server/npc/ai) are pure and dependency free, so the tests build them directly
 SET( npcai_SERVER_DIR "${PROJECT_SOURCE_DIR}/src/eve-server/npc/ai" )
+# so are the NeX store's python shapes (eve-server/store/StoreMarshal)
+SET( store_SERVER_DIR "${PROJECT_SOURCE_DIR}/src/eve-server/store" )
 ADD_EXECUTABLE( "${TARGET_NAME}"
                 ${TARGET_SOURCELIST}
                 "${npcai_SERVER_DIR}/NpcMath.cpp"
+                "${store_SERVER_DIR}/StoreMarshal.cpp"
                 "${TARGET_SOURCE_DIR}/ProfilerStub.cpp" )
 
 #TARGET_BUILD_PCH( "${TARGET_NAME}"
@@ -83,7 +87,8 @@ target_precompile_headers( "${TARGET_NAME}" PUBLIC
 TARGET_INCLUDE_DIRECTORIES( "${TARGET_NAME}"
                             ${eve-common_INCLUDE_DIRS}
                             "${TARGET_INCLUDE_DIR}"
-                            "${npcai_SERVER_DIR}" )
+                            "${npcai_SERVER_DIR}"
+                            "${store_SERVER_DIR}" )
 TARGET_LINK_LIBRARIES( "${TARGET_NAME}"
                        "eve-common" )
 # the tests run from the build tree:  put the mariadb client dll (eve-core needs it) next to them
@@ -105,6 +110,8 @@ ADD_TEST( NAME "SkillMathTest"
           COMMAND "${TARGET_NAME}" "utils/SkillMathTest" )
 ADD_TEST( NAME "SovRulesTest"
           COMMAND "${TARGET_NAME}" "utils/SovRulesTest" )
+ADD_TEST( NAME "StoreRulesTest"
+          COMMAND "${TARGET_NAME}" "utils/StoreRulesTest" )
 ADD_TEST( NAME "DevIndexRulesTest"
           COMMAND "${TARGET_NAME}" "utils/DevIndexRulesTest" )
 ADD_TEST( NAME "StructureTimingTest"
