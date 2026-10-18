@@ -66,6 +66,7 @@
 #include "exploration/Scan.h"
 #include "station/Station.h"
 #include "station/TradeService.h"
+#include "store/AurumStipend.h"
 #include "pos/Tower.h"
 #include "system/cosmicMgrs/WormholeMgr.h"
 
@@ -135,6 +136,7 @@ Client::Client(EVEServiceManager& services, EVETCPConnection** con)
     m_moveSystemID = 0;
     m_skillTimer = 0;
     m_boosterTimer = 0;
+    m_aurStipendCheck = 0;
     m_dockStationID = 0;
 
     m_lpMap.clear();
@@ -287,6 +289,8 @@ bool Client::SelectCharacter(int32 charID/*0*/)
     m_char->SkillQueueLoop(false);
     // boosters that ran out while logged off go on the first tick
     SetBoosterTimer(m_char->GetNextBoosterExpiry());
+    // the AUR stipend is looked at a minute into the session, when the wallet is up
+    m_aurStipendCheck = GetFileTimeNow() + EvE::Time::Minute;
 
     // register with our system manager AFTER character is constructed and initialized
     m_system->AddClient(this, true);
@@ -406,6 +410,9 @@ void Client::ProcessClient() {
     if (m_boosterTimer > 0)
         if (m_boosterTimer < GetFileTimeNow())
             m_char->ProcessBoosterExpiry();
+
+    if ((m_aurStipendCheck > 0) and (m_aurStipendCheck < GetFileTimeNow()))
+        m_aurStipendCheck = AurumStipend::Check(m_char->itemID());
 
     if (m_sessionTimer.Check(false)) {
         _log(CLIENT__TIMER, "Client::ProcessClient():  SetSessionChange to false for %s(%u)", m_char->name(), m_char->itemID());

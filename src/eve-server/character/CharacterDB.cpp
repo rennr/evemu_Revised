@@ -170,6 +170,7 @@ void CharacterDB::DeleteCharacter(uint32 characterID) {
                             " WHERE jumpCloneID IN (SELECT jumpCloneID FROM chrJumpClones WHERE characterID = %u)", characterID);
     sDatabase.RunQuery(err, "DELETE FROM chrJumpClones WHERE characterID = %u", characterID);
     sDatabase.RunQuery(err, "DELETE FROM chrBoosters WHERE characterID = %u", characterID);
+    sDatabase.RunQuery(err, "DELETE FROM chrAurumStipend WHERE characterID = %u", characterID);
     sDatabase.RunQuery(err, "DELETE FROM entity_attributes"
                             " WHERE itemID IN (SELECT itemID FROM entity WHERE ownerID = %u)", characterID);
     sDatabase.RunQuery(err, "DELETE FROM entity WHERE ownerID = %u", characterID);

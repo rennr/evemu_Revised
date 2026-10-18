@@ -32,6 +32,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "../../eve-common/EVE_Character.h"
+#include "../../eve-common/EVE_Store.h"
 
 #include "account/AccountService.h"
 //#include "../../eve-common/EVE_Skills.h"
@@ -62,6 +63,8 @@
 #include "services/ServiceManager.h"
 #include "ship/Ship.h"
 #include "station/StationDataMgr.h"
+#include "store/StoreDB.h"
+#include "store/StoreService.h"
 #include "ship/modules/GenericModule.h"
 #include "ship/modules/ModuleManager.h"
 
@@ -164,6 +167,73 @@ PyResult Command_giveisk(Client* who, CommandDB* db, EVEServiceManager &services
         AccountService::TransferFunds(charID, corpSCC, -amount, reason, Journal::EntryType::GMCashTransfer);
     }
     return new PyString("Operation successful.");
+}
+
+PyResult Command_aur(Client* who, CommandDB* db, EVEServiceManager &services, const Seperator& args)
+{
+    if (args.argCount() < 2)
+        throw CustomError ("Correct Usage: /aur [charID|me] [amount]");
+
+    uint32 charID(0);
+    if (args.arg(1) == "me") {
+        charID = who->GetCharacterID();
+    } else if (args.isNumber(1)) {
+        charID = atol(args.arg(1).c_str());
+    } else {
+        throw CustomError ("Argument 1 should be a character ID ('me'=self)");
+    }
+    if (!IsCharacterID(charID))
+        throw CustomError ("%u is not a character ID", charID);
+
+    // online characters from their wallet, offline ones from the db
+    double balance(0.0);
+    if (!StoreDB::GetAurBalance(charID, balance))
+        throw CustomError ("Character %u not found", charID);
+    Client* pTarget(sEntityList.FindClientByCharID(charID));
+    if (pTarget != nullptr)
+        balance = pTarget->GetBalance(Account::CreditType::AURUM);
+
+    char reply[128];
+    if (args.argCount() < 3) {
+        snprintf(reply, sizeof(reply), "Character %u has %.0f AUR.", charID, balance);
+        return new PyString(reply);
+    }
+
+    if (!args.isNumber(2))
+        throw CustomError ("Argument 2 should be a whole amount of AUR");
+    int64 amount(strtoll(args.arg(2).c_str(), nullptr, 10));
+    if ((amount == 0) or (amount > StoreRules::MaxAur) or (amount < -StoreRules::MaxAur))
+        throw CustomError ("Amount must be a non-zero whole number of AUR");
+    if ((amount < 0) and (balance < (double)-amount))
+        throw CustomError ("Character %u has only %.0f AUR", charID, balance);
+
+    // an Aurum give-away from the store's holding corp (CONCORD), journaled refAurumGiveAway
+    std::string reason("DESC: GM grant by ");
+    reason += who->GetName();
+    if (amount > 0) {
+        AccountService::TransferFunds(corpCONCORD, charID, (double)amount, reason, Journal::EntryType::AurumGiveAway, 0,
+                                      Account::KeyType::AUR, Account::KeyType::AUR);
+    } else {
+        AccountService::TransferFunds(charID, corpCONCORD, (double)-amount, reason, Journal::EntryType::AurumGiveAway, 0,
+                                      Account::KeyType::AUR, Account::KeyType::AUR);
+    }
+    snprintf(reply, sizeof(reply), "%s %lli AUR %s character %u.  Balance now %.0f AUR.", (amount > 0 ? "Gave" : "Took"),
+             (long long)(amount > 0 ? amount : -amount), (amount > 0 ? "to" : "from"), charID, balance + (double)amount);
+    return new PyString(reply);
+}
+
+PyResult Command_store(Client* who, CommandDB* db, EVEServiceManager &services, const Seperator& args)
+{
+    std::string cmd(args.argCount() < 2 ? "status" : args.arg(1));
+    if (cmd == "open") {
+        StoreService::SetOpen(true);
+    } else if (cmd == "close") {
+        // open store windows close on the next call (VG_STORE_CLOSED)
+        StoreService::SetOpen(false);
+    } else if (cmd != "status") {
+        throw CustomError ("Correct Usage: /store [open|close|status]");
+    }
+    return new PyString(StoreService::IsOpen() ? "The Noble Exchange store is open." : "The Noble Exchange store is closed.");
 }
 
 PyResult Command_freesp(Client* who, CommandDB* db, EVEServiceManager &services, const Seperator& args)

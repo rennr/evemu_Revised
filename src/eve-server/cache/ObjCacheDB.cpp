@@ -398,7 +398,8 @@ PyRep *ObjCacheDB::Generate_PaperdollModifierLocations()
 PyRep *ObjCacheDB::Generate_PaperdollResources()
 {
     DBQueryResult res;
-    const char *q = "SELECT paperdollResourceID, resGender, resPath, restrictions FROM paperdollResources";
+    // the client bulk header (2001600003):  paperdollResourceID, resGender, resPath, restrictions, typeID
+    const char *q = "SELECT paperdollResourceID, resGender, resPath, restrictions, typeID FROM paperdollResources";
     if (sDatabase.RunQuery(res, q) == false)
     {
         _log(DATABASE__ERROR, "Error in query for cached object 'config.BulkData.paperdollResources': %s", res.error.c_str());

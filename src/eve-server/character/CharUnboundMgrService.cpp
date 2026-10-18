@@ -36,6 +36,7 @@
 #include "corporation/CorporationDB.h"
 #include "imageserver/ImageServer.h"
 #include "station/StationDataMgr.h"
+#include "store/Wardrobe.h"
 
 CharUnboundMgrService::CharUnboundMgrService(EVEServiceManager& mgr) :
     Service("charUnboundMgr")
@@ -182,6 +183,8 @@ PyResult CharUnboundMgrService::CreateCharacterWithDoll(PyCallArgs &call, PyRep*
     PyDict* portraitInfoData = portraitInfo->arguments()->AsDict();
     // check name and throw on failure before we get too far in this
     CharacterDB::ValidateCharName(PyRep::StringContent(characterName));
+    // no premium apparel on a new character
+    Wardrobe::CheckNewCharacter(call.client, charInfoData);
 
     Client* pClient = call.client;
     pClient->CreateChar(true);
@@ -399,7 +402,9 @@ PyResult CharUnboundMgrService::CreateCharacterWithDoll(PyCallArgs &call, PyRep*
     std::string reason = "DESC: Inheritance Payment to ";
     reason += charRef->itemName();
     AccountService::TransferFunds(corpSCC, charRef->itemID(), sConfig.character.startBalance, reason, Journal::EntryType::Inheritance);
-    AccountService::TransferFunds(corpSCC, charRef->itemID(), sConfig.character.startAurBalance, reason, Journal::EntryType::Inheritance, 0, Account::KeyType::AUR, Account::KeyType::AUR);
+    // starting AUR (character.startAurBalance, 0 by default:  AUR comes from PLEX, Aurum Tokens, GMs and the stipend)
+    if (sConfig.character.startAurBalance > 0)
+        AccountService::TransferFunds(corpSCC, charRef->itemID(), sConfig.character.startAurBalance, reason, Journal::EntryType::Inheritance, 0, Account::KeyType::AUR, Account::KeyType::AUR);
 
     charRef->LogOut();
     sRef->LogOut();

@@ -48,6 +48,16 @@ boolean can use either 0/1 OR true/false.
         <cspaEnabled>true</cspaEnabled>
         <!-- CSPA charge set for new characters: 0 = free, -1 = only their contacts may contact them -->
         <cspaDefaultCost>0</cspaDefaultCost>
+        <!-- Noble Exchange (NeX) store: apparel for Aurum (AUR).  false = closed (the client shows VG_STORE_CLOSED);
+             GM /store open|close switches it until the next restart -->
+        <storeEnabled>true</storeEnabled>
+        <!-- AUR stipend: aurStipendAmount AUR paid to each character every aurStipendIntervalHours, journaled as an
+             Aurum give-away from CONCORD.  the first one is paid soon after a character's first login.  a character
+             away for several intervals is paid at most aurStipendMaxPeriods of them.  0 = no stipend.
+             3500 AUR = one PLEX's worth, the price of about one clothing item -->
+        <aurStipendAmount>3500</aurStipendAmount>
+        <aurStipendIntervalHours>168</aurStipendIntervalHours>
+        <aurStipendMaxPeriods>1</aurStipendMaxPeriods>
     </account>
 
     <server>
@@ -295,7 +305,7 @@ boolean can use either 0/1 OR true/false.
 
     <character>
         <startBalance>5000.0</startBalance>
-        <startAurBalance>600.0</startAurBalance>
+        <startAurBalance>0.0</startAurBalance><!-- Aurum for new characters (AUR otherwise comes from PLEX, Aurum Tokens, GMs and the stipend) -->
         <startStation>0</startStation><!-- stationID of character starting station.  '0' to use default based on race -->
         <startSecRating>1.0</startSecRating>
         <startCorporation>0</startCorporation><!-- corporationID for new characters '0' to use default based on school -->

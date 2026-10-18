@@ -32,6 +32,7 @@
 #include "character/Character.h"
 #include "character/CharacterDB.h"
 #include "imageserver/ImageServer.h"
+#include "store/Wardrobe.h"
 
 // util.KeyVal doll / portrait info from the character creator -> its dict (nullptr if it isn't one)
 static PyDict* GetKeyValDict(PyRep* rep)
@@ -115,10 +116,14 @@ PyResult PaperDollService::UpdateExistingCharacterFull(PyCallArgs &call, PyInt* 
     PyDict* portrait(GetKeyValDict(portraitInfo));
     if (doll == nullptr)
         throw CustomError ("The character appearance data is invalid.");
+    // premium apparel must be owned (throws ItemNotAtStation);  newly worn pieces go into the wardrobe after the save
+    std::vector<int32> toWardrobe;
+    Wardrobe::CheckWorn(call.client, charID, doll, toWardrobe);
 
     CharacterDB::ClearAvatar(charID, true);
     CharacterAppearance capp;
         capp.Build(charID, doll);
+    Wardrobe::Wear(call.client, charID, toWardrobe);
     if (portrait != nullptr) {
         CharacterDB::ClearPortrait(charID);
         CharacterPortrait cpor;
@@ -143,10 +148,13 @@ PyResult PaperDollService::UpdateExistingCharacterLimited(PyCallArgs &call, PyIn
     PyDict* portrait(GetKeyValDict(portraitInfo));
     if (doll == nullptr)
         throw CustomError ("The character appearance data is invalid.");
+    std::vector<int32> toWardrobe;
+    Wardrobe::CheckWorn(call.client, charID, doll, toWardrobe);
 
     CharacterDB::ClearAvatar(charID, false);
     CharacterAppearance capp;
         capp.Build(charID, doll);
+    Wardrobe::Wear(call.client, charID, toWardrobe);
     if (portrait != nullptr) {
         CharacterDB::ClearPortrait(charID);
         CharacterPortrait cpor;

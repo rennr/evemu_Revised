@@ -463,6 +463,7 @@ protected:
 
     int64                   m_skillTimer;
     int64                   m_boosterTimer;
+    int64                   m_aurStipendCheck;      // when the AUR stipend is checked next (filetime, 0 = off)
 
     int8                    m_clientState;
 

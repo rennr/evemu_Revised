@@ -69,6 +69,9 @@ protected:
     PyResult SplitStack(PyCallArgs& call, PyInt* stationID, PyInt* itemID, PyInt* quantity, PyInt* ownerID);
     PyResult DeliverToCorpHangar(PyCallArgs& call, PyInt* fromID, PyInt* stationID, PyList* itemIDs, std::optional <PyInt*> quantity, PyInt* ownerID, PyInt* destinationFlag);
     PyResult DeliverToCorpMember(PyCallArgs& call, PyInt* corporationMemberID, PyInt* stationID, PyList* itemIDs, std::optional <PyInt*> quantity, PyInt* ownerID);
+    // the NeX store's Aurum exchanges (store/StoreService)
+    PyResult ConvertPlexToCurrency(PyCallArgs& call, PyList* plexItemIDs, PyInt* quantity);
+    PyResult ConvertAurTokenToCurrency(PyCallArgs& call, PyList* itemIDs, PyInt* quantity);
 
 protected:
     uint32 m_locationID;

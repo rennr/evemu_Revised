@@ -224,7 +224,6 @@ SET( corporation_INCLUDE
      "${TARGET_INCLUDE_DIR}/corporation/CorpStationMgr.h"
      "${TARGET_INCLUDE_DIR}/corporation/ItemLockdown.h"
      "${TARGET_INCLUDE_DIR}/corporation/LPService.h"
-     "${TARGET_INCLUDE_DIR}/corporation/LPStore.h"
      "${TARGET_INCLUDE_DIR}/corporation/OfficeSparseBound.h" )
 SET( corporation_SOURCE
      "${TARGET_SOURCE_DIR}/corporation/BillMgr.cpp"
@@ -240,7 +239,6 @@ SET( corporation_SOURCE
      "${TARGET_SOURCE_DIR}/corporation/CorpStationMgr.cpp"
      "${TARGET_SOURCE_DIR}/corporation/ItemLockdown.cpp"
      "${TARGET_SOURCE_DIR}/corporation/LPService.cpp"
-     "${TARGET_SOURCE_DIR}/corporation/LPStore.cpp"
      "${TARGET_SOURCE_DIR}/corporation/OfficeSparseBound.cpp" )
 
 SET( dogmaim_INCLUDE
@@ -648,6 +646,19 @@ SET( standing_SOURCE
      "${TARGET_SOURCE_DIR}/standing/StandingDB.cpp"
      "${TARGET_SOURCE_DIR}/standing/StandingMgr.cpp" )
 
+SET( store_INCLUDE
+     "${TARGET_INCLUDE_DIR}/store/AurumStipend.h"
+     "${TARGET_INCLUDE_DIR}/store/StoreDB.h"
+     "${TARGET_INCLUDE_DIR}/store/StoreMarshal.h"
+     "${TARGET_INCLUDE_DIR}/store/StoreService.h"
+     "${TARGET_INCLUDE_DIR}/store/Wardrobe.h" )
+SET( store_SOURCE
+     "${TARGET_SOURCE_DIR}/store/AurumStipend.cpp"
+     "${TARGET_SOURCE_DIR}/store/StoreDB.cpp"
+     "${TARGET_SOURCE_DIR}/store/StoreMarshal.cpp"
+     "${TARGET_SOURCE_DIR}/store/StoreService.cpp"
+     "${TARGET_SOURCE_DIR}/store/Wardrobe.cpp" )
+
 SET( station_INCLUDE
      "${TARGET_INCLUDE_DIR}/station/HoloscreenMgrService.h"
      "${TARGET_INCLUDE_DIR}/station/InsuranceService.h"
@@ -818,6 +829,7 @@ SOURCE_GROUP( "src\\ship"          FILES ${ship_INCLUDE} )
 SOURCE_GROUP( "src\\ship\\modules" FILES ${ship_modules_INCLUDE} )
 SOURCE_GROUP( "src\\standing"      FILES ${standing_INCLUDE} )
 SOURCE_GROUP( "src\\station"       FILES ${station_INCLUDE} )
+SOURCE_GROUP( "src\\store"         FILES ${store_INCLUDE} )
 SOURCE_GROUP( "src\\system"        FILES ${system_INCLUDE} )
 SOURCE_GROUP( "src\\system\\sov"   FILES ${system_sov_INCLUDE} )
 SOURCE_GROUP( "src\\system\\cosmicMgrs"  FILES ${system_managers_INCLUDE} )
@@ -857,6 +869,7 @@ SOURCE_GROUP( "src\\ship"          FILES ${ship_SOURCE} )
 SOURCE_GROUP( "src\\ship\\modules" FILES ${ship_modules_SOURCE} )
 SOURCE_GROUP( "src\\standing"      FILES ${standing_SOURCE} )
 SOURCE_GROUP( "src\\station"       FILES ${station_SOURCE} )
+SOURCE_GROUP( "src\\store"         FILES ${store_SOURCE} )
 SOURCE_GROUP( "src\\system"        FILES ${system_SOURCE} )
 SOURCE_GROUP( "src\\system\\sov"   FILES ${system_sov_SOURCE} )
 SOURCE_GROUP( "src\\system\\cosmicMgrs"  FILES ${system_managers_SOURCE} )
@@ -897,6 +910,7 @@ ADD_EXECUTABLE( "${TARGET_NAME}"
                 ${ship_modules_INCLUDE}   ${ship_modules_SOURCE}
                 ${standing_INCLUDE}       ${standing_SOURCE}
                 ${station_INCLUDE}        ${station_SOURCE}
+                ${store_INCLUDE}          ${store_SOURCE}
                 ${system_INCLUDE}         ${system_SOURCE}
                 ${system_sov_INCLUDE}     ${system_sov_SOURCE}
                 ${system_managers_INCLUDE} ${system_managers_SOURCE}

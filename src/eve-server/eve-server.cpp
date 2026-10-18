@@ -99,7 +99,8 @@
 #include "corporation/CorpRegistryService.h"
 #include "corporation/CorpStationMgr.h"
 #include "corporation/LPService.h"
-#include "corporation/LPStore.h"
+// NeX store
+#include "store/StoreService.h"
 // dogmaim services
 #include "dogmaim/DogmaIMService.h"
 #include "dogmaim/DogmaService.h"
@@ -697,7 +698,7 @@ int main( int argc, char* argv[] )
     newSvcMgr.Register(new CorporationService());
     newSvcMgr.Register(new LanguageService());
     newSvcMgr.Register(new LocalizationServerService());
-    newSvcMgr.Register(new LPStore());
+    newSvcMgr.Register(new StoreService());
     newSvcMgr.Register(new OnlineStatusService());
     newSvcMgr.Register(new Search());
     newSvcMgr.Register(new SovereigntyMgrService());

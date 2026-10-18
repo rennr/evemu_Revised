@@ -11,6 +11,10 @@ COMMAND( search, Acct::Role::VIP,
          "(text) - Search for items matching the specified query" )
 COMMAND( giveisk, Acct::Role::GMH,
          "(entityID) (amount) - Give the specified amount of cash to the specified character. 0=self." )
+COMMAND( aur, Acct::Role::GMH,
+         "(charID|me) [amount] - shows a character's Aurum (AUR) balance, or gives (negative: takes) whole AUR" )
+COMMAND( store, Acct::Role::GMH,
+         "(open|close|status) - opens or closes the Noble Exchange store until the next restart (config account.storeEnabled)" )
 COMMAND( freesp, Acct::Role::GMH,
          "(charID|me) (amount) - adds (or with a negative amount takes) unallocated skill points" )
 COMMAND( recustomize, Acct::Role::GMH,

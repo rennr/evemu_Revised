@@ -1072,6 +1072,12 @@ void InventoryBound::CheckSourceAccess(Client* pClient, InventoryItemRef iRef, u
     if ((iRef->locationID() == toLocationID) and (iRef->flag() == toFlag))
         return;
 
+    // worn apparel stays in the character's wardrobe, and only wearing it puts it there (store/Wardrobe)
+    if ((iRef->flag() == flagWardrobe) and IsCharacterID(iRef->locationID()))
+        throw CustomError("Apparel in your wardrobe can't be moved.  It stays with your character.");
+    if (toFlag == flagWardrobe)
+        throw CustomError("Apparel goes into your wardrobe when you wear it in the character customization.");
+
     // a corp-locked blueprint stays where it is, even within the office
     if (ItemLockdown::IsLocked(iRef->itemID()))
         throw UserError("CrpItemIsLocked");

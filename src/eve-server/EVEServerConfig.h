@@ -296,6 +296,10 @@ public:
         std::string reverseRedeemTypes; // comma separated typeIDs that can be put back into the redeem list, "" = none  (F24)
         bool cspaEnabled;               // CONCORD Spam Prevention Act charges for contacting non-contacts  (F24)
         int32 cspaDefaultCost;          // CSPA charge stored for new characters (0 = free, -1 = only contacts may contact)  (F24)
+        bool storeEnabled;              // the Noble Exchange store is open (GM /store open|close overrides it until restart)
+        uint32 aurStipendAmount;        // AUR paid to every character each aurStipendIntervalHours (0 = no stipend)
+        uint32 aurStipendIntervalHours; // hours between stipend payments
+        uint32 aurStipendMaxPeriods;    // missed payments made up on return after a long absence (1 = just one)
     } account;
 
     // From <character>
@@ -310,7 +314,7 @@ public:
         uint32 startStation;
         /// Money balance of new created characters.
         double startBalance;
-        /// Aura balance of new created characters.   -allan 01/10/14
+        /// Aurum (AUR) balance of new characters (0 by default:  AUR comes from PLEX, Aurum Tokens, GMs and the stipend)
         double startAurBalance;
         /// Starting security rating for new characters.
         double startSecRating;

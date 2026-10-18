@@ -45,6 +45,7 @@
 #include "inventory/ItemDB.h"
 #include "ship/Ship.h"
 #include "ship/ShipDB.h"
+#include "store/StoreService.h"
 #include "EVEServerConfig.h"
 
 static void GetIntList(PyList* list, std::vector<uint32>& into);
@@ -113,6 +114,22 @@ InvBrokerBound::InvBrokerBound(EVEServiceManager& mgr, InvBrokerService& parent,
     this->Add("SplitStack", &InvBrokerBound::SplitStack);
     this->Add("DeliverToCorpHangar", &InvBrokerBound::DeliverToCorpHangar);
     this->Add("DeliverToCorpMember", &InvBrokerBound::DeliverToCorpMember);
+    this->Add("ConvertPlexToCurrency", &InvBrokerBound::ConvertPlexToCurrency);
+    this->Add("ConvertAurTokenToCurrency", &InvBrokerBound::ConvertAurTokenToCurrency);
+}
+
+PyResult InvBrokerBound::ConvertPlexToCurrency(PyCallArgs& call, PyList* plexItemIDs, PyInt* quantity)
+{
+    // sm.GetService('invCache').GetInventoryMgr().ConvertPlexToCurrency(plexes, qty)  (storeSvc.SellLocalPlexForAur)
+    StoreService::ConvertPlex(call.client, plexItemIDs, quantity->value());
+    return nullptr;
+}
+
+PyResult InvBrokerBound::ConvertAurTokenToCurrency(PyCallArgs& call, PyList* itemIDs, PyInt* quantity)
+{
+    // sm.GetService('invCache').GetInventoryMgr().ConvertAurTokenToCurrency([itemID], qty)  (menusvc.ApplyAurumToken)
+    StoreService::ConvertAurToken(call.client, itemIDs, quantity->value());
+    return nullptr;
 }
 
 //is this completely right?

@@ -268,10 +268,14 @@ EVEServerConfig::EVEServerConfig()
     account.reverseRedeemTypes = "";
     account.cspaEnabled = true;
     account.cspaDefaultCost = 0;
+    account.storeEnabled = true;
+    account.aurStipendAmount = 3500;        // one PLEX's worth (Plex2AurExchangeRatio)
+    account.aurStipendIntervalHours = 168;  // weekly
+    account.aurStipendMaxPeriods = 1;
 
     // character
     character.startBalance = 6666000000.0f;
-    character.startAurBalance = 60000.0f;
+    character.startAurBalance = 0.0;
     character.startStation = 0;
     character.startSecRating = 0.0;
     character.startCorporation = 0;
@@ -1187,6 +1191,10 @@ bool EVEServerConfig::ProcessAccount( const TiXmlElement* ele )
     AddValueParser( "reverseRedeemTypes", account.reverseRedeemTypes );
     AddValueParser( "cspaEnabled",      account.cspaEnabled );
     AddValueParser( "cspaDefaultCost",  account.cspaDefaultCost );
+    AddValueParser( "storeEnabled",     account.storeEnabled );
+    AddValueParser( "aurStipendAmount", account.aurStipendAmount );
+    AddValueParser( "aurStipendIntervalHours", account.aurStipendIntervalHours );
+    AddValueParser( "aurStipendMaxPeriods", account.aurStipendMaxPeriods );
 
     const bool result = ParseElementChildren( ele );
 
@@ -1196,6 +1204,10 @@ bool EVEServerConfig::ProcessAccount( const TiXmlElement* ele )
     RemoveParser( "reverseRedeemTypes" );
     RemoveParser( "cspaEnabled" );
     RemoveParser( "cspaDefaultCost" );
+    RemoveParser( "storeEnabled" );
+    RemoveParser( "aurStipendAmount" );
+    RemoveParser( "aurStipendIntervalHours" );
+    RemoveParser( "aurStipendMaxPeriods" );
 
     return result;
 }
