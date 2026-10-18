@@ -1190,6 +1190,11 @@ void PullApart(StaticData& data, double sigma)
                 r.activeShare = 1.0f;
             }
             r.priceRatio = (float)(data.RegionPrice(regionID, cur.first) * std::exp(sigma * Rng::Normal(Rng::Hash64(0xA9A27ull, regionID, cur.first))));
+            /* the pulled ratio is the effective one (RegionRatioMinActive's shrink of a thin row is in it already):  a hub's
+             *  thin row isn't shrunk again, which would take most of the pull back out of it.  (a regional node's thin
+             *  rows have no cells) */
+            if ((data.nodes[n].kind == NodeKind::Hub) and (r.activeShare < data.regionRatioMinActive))
+                r.activeShare = data.regionRatioMinActive;
             data.region[key] = r;
         }
     }
