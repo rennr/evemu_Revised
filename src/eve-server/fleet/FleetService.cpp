@@ -2479,8 +2479,7 @@ void FleetService::FleetBroadcast(Client* pFrom, uint32 itemID, int8 scope, int8
         payload->SetItem(2, new PyInt(pFrom->GetCharacterID()));
         payload->SetItem(3, new PyInt(pFrom->GetSystemID()));
         payload->SetItem(4, new PyInt(itemID));
-        // if BCastName(label) then add next item properly
-        payload->SetItem(5, PyStatic.NewNone());
+        // the Crucible client's OnFleetBroadcast(name, scope, charID, solarSystemID, itemID) takes no broadcast label
 
     uint8 count(0);
     for (auto cur : members) {
