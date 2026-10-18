@@ -65,7 +65,8 @@ namespace {
  * Base Structure Item for all POS types
  */
 StructureItem::StructureItem(uint32 _structureID, const ItemType &_itemType, const ItemData &_data)
-    : InventoryItem(_structureID, _itemType, _data)
+    : InventoryItem(_structureID, _itemType, _data),
+    mySE(nullptr)
 {
     pInventory = new Inventory(InventoryItemRef(this));
     _log(ITEM__TRACE, "Created StructureItem for %s (%u).", name(), itemID());

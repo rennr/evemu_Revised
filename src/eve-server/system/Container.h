@@ -91,7 +91,8 @@ public:
     PyObject *CargoContainerGetInfo();
 
     bool IsEmpty()                                      { return GetMyInventory()->IsEmpty(); }
-    void SetMySE(SystemEntity* pSE)                     { mySE = pSE;}
+    // the SE is StructureItem's (SetMySE/GetMySE):  a second one here hid it, and StructureItem::AddItem, Rename and the
+    //  inventory code's GetMySE() read StructureItem's, never set for containers (a salvage crash on garbage)
 
 protected:
     bool m_isAnchored;
@@ -123,8 +124,6 @@ protected:
 
     virtual PyRep* GetItem() const                      { return GetItemRow(); }
 
-private:
-    SystemEntity* mySE;
 };
 
 

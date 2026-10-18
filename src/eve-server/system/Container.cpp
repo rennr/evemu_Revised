@@ -47,10 +47,9 @@
  */
 CargoContainer::CargoContainer(uint32 _containerID, const ItemType &_containerType, const ItemData &_data)
 : StructureItem(_containerID, _containerType, _data),
-mySE(nullptr),
 m_isAnchored(false)
 {
-    pInventory = new Inventory(InventoryItemRef(this));
+    // StructureItem made the inventory
     _log(ITEM__TRACE, "Created CargoContainer object for item %s (%u).", name(), m_itemID);
 }
 
@@ -130,8 +129,8 @@ void CargoContainer::Delete()
     }
 
     // if SE exists, remove from system before deleting item
-    if (mySE != nullptr)
-        mySE->Delete();
+    if (GetMySE() != nullptr)
+        GetMySE()->Delete();
 
     pInventory->LoadContents();
     pInventory->DeleteContents();
@@ -176,9 +175,9 @@ void CargoContainer::RemoveItem(InventoryItemRef iRef)
     InventoryItem::RemoveItem(iRef);
 
     // dungeon trigger:  loot taken from a site container
-    if ((groupID() == EVEDB::invGroups::Spawn_Container) and (mySE != nullptr) and (mySE->SystemMgr() != nullptr)) {
+    if ((groupID() == EVEDB::invGroups::Spawn_Container) and (GetMySE() != nullptr) and (GetMySE()->SystemMgr() != nullptr)) {
         Client* pClient(sItemFactory.GetUsingClient());
-        mySE->SystemMgr()->GetDungMgr()->OnObjectEvent(m_itemID, Dungeon::Trigger::ItemRemovedFromSpawnContainer,
+        GetMySE()->SystemMgr()->GetDungMgr()->OnObjectEvent(m_itemID, Dungeon::Trigger::ItemRemovedFromSpawnContainer,
                 (pClient != nullptr ? pClient->GetCharacterID() : 0), iRef->typeID());
     }
 
